@@ -1,0 +1,144 @@
+defmodule Chain.EVM.Implementation.Ganache do
+  @moduledoc """
+  Ganache EVM implementation
+  """
+  use Chain.EVM
+
+  alias Chain.EVM.Config
+  alias Chain.Seth
+
+  @ganache_cli Path.absname("../../priv/presets/ganache/node_modules/.bin/ganache-cli")
+  @wrapper_file Path.absname("../../wrapper.sh")
+
+  @impl Chain.EVM
+  def start(%Config{db_path: ""}), do: {:error, "Wrong db_path. Please define it."}
+
+  def start(%Config{id: id, db_path: db_path} = config) do
+    unless File.exists?(@ganache_cli) do
+      raise "No `ganache-cli` installed. Please run `cd priv/presets/ganache && npm install`"
+    end
+
+    unless File.dir?(db_path) do
+      Logger.debug("#{id}: #{db_path} not exist, creating...")
+      :ok = File.mkdir_p!(db_path)
+    end
+
+    Logger.debug("#{id}: Starting ganache-cli")
+    port = start_node(config)
+    {:ok, %{port: port, id: id, config: config}}
+  end
+
+  @impl Chain.EVM
+  def stop(%{port: port} = state) do
+    true = Porcelain.Process.stop(port)
+    {:ok, state}
+  end
+
+  @impl Chain.EVM
+  def handle_msg({_pid, :data, :out, str}, %{id: id} = state) do
+    Logger.info("#{id}: #{str}")
+    {:ok, state}
+  end
+
+  @impl Chain.EVM
+  def start_mine(%{config: %Config{http_port: http_port}} = state) do
+    %{err: nil, status: 0, out: <<"true", _::binary>>} = exec_command("miner_start", http_port)
+    {:ok, %{state | mining: true}}
+  end
+
+  @impl Chain.EVM
+  def stop_mine(%{config: %Config{http_port: http_port}} = state) do
+    %{err: nil, status: 0, out: <<"true", _::binary>>} = exec_command("miner_stop", http_port)
+    {:ok, %{state | mining: false}}
+  end
+
+  @impl Chain.EVM
+  def take_snapshot(
+        path_to,
+        %{id: id, config: %{db_path: db_path}, mining: mining} = state
+      ) do
+    Logger.debug("#{id}: Making snapshot")
+
+    unless File.dir?(path_to) do
+      :ok = File.mkdir_p!(path_to)
+    end
+
+    if mining do
+      Logger.debug("#{id}: Stopping mining before taking snapshot")
+      stop_mine(state)
+    end
+
+    {:ok, _} = File.cp_r(db_path, path_to)
+    Logger.debug("#{id}: Snapshot made to #{path_to}")
+
+    if mining do
+      Logger.debug("#{id}: Starting mining after taking snapshot")
+      start_mine(state)
+    end
+
+    :ok
+  end
+
+  @impl Chain.EVM
+  def terminate(%{port: port, id: id} = state) do
+    Logger.info("#{id}: Terminating... #{inspect(state)}")
+    Porcelain.Process.stop(port)
+    :ok
+  end
+
+  @doc """
+  Starting new ganache node based on given config
+  """
+  @spec start_node(Chain.EVM.Config.t()) :: Porcelain.Process.t()
+  def start_node(config) do
+    Porcelain.spawn_shell(build_command(config), out: {:send, self()})
+  end
+
+  @doc """
+  Execute special console command on started node.
+  Be default command will be executed using `seth rpc` command.
+
+  Comamnd will be used: 
+  `seth  --rpc-url localhost:${http_port} prc ${command}`
+
+  Example: 
+  ```elixir
+  iex()> Chain.EVM.Implementation.Ganache.exec_command("eth_blockNumber", 8545)
+  %Porcelain.Result{err: nil, out: "80\n", status: 0} 
+  ```
+  """
+  @spec exec_command(binary, binary | non_neg_integer()) :: Porcelain.Result.t()
+  def exec_command(command, http_port) when is_binary(http_port) or is_integer(http_port) do
+    "localhost:#{http_port}"
+    |> Seth.call_rpc(command)
+  end
+
+  # Get path for logging
+  defp get_output(""), do: "2>/dev/null"
+  defp get_output(path) when is_binary(path), do: "2>#{path}"
+  # Ignore in any other case
+  defp get_output(_), do: "2>/dev/null"
+
+  # Build command for starting ganache-cli
+  defp build_command(%Config{
+         db_path: db_path,
+         network_id: network_id,
+         http_port: http_port,
+         accounts: accounts,
+         output: output
+       }) do
+    [
+      # Sorry but this **** never works as you expect so I have to wrap it into "killer"
+      # Otherwise after application will be terminated - ganache still wwill be running
+      @wrapper_file, 
+      @ganache_cli,
+      "--noVMErrorsOnRPCResponse",
+      "-i #{network_id}",
+      "-p #{http_port}",
+      "-a #{accounts}",
+      "--db #{db_path} ",
+      get_output(output)
+    ]
+    |> Enum.join(" ")
+  end
+end
