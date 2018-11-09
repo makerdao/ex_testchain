@@ -207,6 +207,29 @@ defmodule Chain.EVM.Implementation.Geth do
     Porcelain.shell("#{executable!()} --exec '#{command}' attach #{url}")
   end
 
+  @doc """
+  Load list of existing accounts existing in chain
+
+  Example: 
+  ```elixir
+  iex()> Chain.EVM.Implementation.Geth.list_accounts(8545)
+  ["0x603a0993495dd494f1b6dbbcef8d1f9d7fe170e0",
+    "0x62161e957c53bfba349ab853ad31211e4df1c9f9",
+    "0xf9fe5d779726c9dd9fd19d1f27c0f29a13432d37",
+    "0xe21f7b35be07d761645f5aca91ddc1dad781f606"]
+  ```
+  """
+  @spec list_accounts(non_neg_integer() | binary) :: {:ok, [binary]} | {:error, term()}
+  def list_accounts(http_port) do
+    %{err: nil, status: 0, out: list} = exec_command("eth.accounts", http_port)
+
+    list
+    |> String.replace("\"", "")
+    |> String.replace("\n", "")
+    |> String.replace(~r/[\[|\]]/, "")
+    |> String.split(", ")
+  end
+
   #
   # Private functions
   #

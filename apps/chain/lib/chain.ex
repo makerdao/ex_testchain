@@ -112,6 +112,6 @@ defmodule Chain do
       %{id: id, start: {module, :start_link, [config]}, restart: :transient}
       |> Chain.EVM.Supervisor.start_child()
 
-    {:ok, %Chain.EVM.Process{id: id}}
+    {:ok, id}
   end
 end

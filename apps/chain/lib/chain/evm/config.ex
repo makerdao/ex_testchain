@@ -9,7 +9,7 @@ defmodule Chain.EVM.Config do
   - `ws_port` - WS JSONRPC port (for ganache it will be ignored and `http_port` will be used) (Default: `8546`)
   - `network_id` - Network ID (Default: `999`)
   - `db_path` - Specify a path to a directory to save the chain database
-  - `instamine` - Should evm start with instamining feature ? (Default: `true`)
+  - `automine` - Should evm start with instamining feature ? (Default: `false`)
   - `accounts` - How many accoutn should be created on start (Default: `1`)
   - `notify_pid` - Internal process id that will be notified on some chain events
 
@@ -21,7 +21,7 @@ defmodule Chain.EVM.Config do
           ws_port: non_neg_integer(),
           network_id: non_neg_integer(),
           db_path: binary(),
-          instamine: boolean(),
+          automine: boolean(),
           accounts: non_neg_integer(),
           output: binary,
           notify_pid: nil | pid()
@@ -34,7 +34,7 @@ defmodule Chain.EVM.Config do
             ws_port: 8546,
             network_id: 999,
             db_path: "",
-            instamine: true,
+            automine: false,
             accounts: 1,
             output: "",
             notify_pid: nil
