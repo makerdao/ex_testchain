@@ -1,7 +1,7 @@
 defmodule Cli.Main do
   @commands %{
     "exit" => "Exit from ex_testchain",
-    "start" => "interactive start script. Will start new chain."
+    "start" => "Interactive shell for starting chains"
   }
 
   def main(args) do
