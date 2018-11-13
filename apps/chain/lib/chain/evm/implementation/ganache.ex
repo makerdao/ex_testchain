@@ -79,6 +79,12 @@ defmodule Chain.EVM.Implementation.Ganache do
     :ok
   end
 
+  @impl Chain.EVM
+  def version() do
+    %{err: nil, status: 0, out: out} = Porcelain.shell("#{@ganache_cli} --version")
+    out
+  end
+
   @doc """
   Starting new ganache node based on given config
   """

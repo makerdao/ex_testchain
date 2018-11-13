@@ -5,6 +5,7 @@ defmodule JsonRpc.HttpApi do
 
   def process_response_body(body) do
     IO.inspect(body)
+
     body
     |> Poison.decode!(keys: :atoms)
   end

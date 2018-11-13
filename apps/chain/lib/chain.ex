@@ -84,6 +84,25 @@ defmodule Chain do
   def take_snapshot(id, path_to),
     do: GenServer.cast(get_pid!(id), {:take_snapshot, path_to})
 
+  @doc """
+  Load list of evms version used in app
+  """
+  @spec version() :: binary
+  def version() do
+    {:ok, v} = :application.get_key(:chain, :vsn)
+
+    """
+
+    Application version: #{to_string(v)}
+
+    ==========================================
+    #{Chain.EVM.Implementation.Geth.version()}
+    ==========================================
+    #{Chain.EVM.Implementation.Ganache.version()}
+    ==========================================
+    """
+  end
+
   # Try lo load pid by given id
   defp get_pid(id) do
     case Registry.lookup(Chain.EVM.Registry, id) do

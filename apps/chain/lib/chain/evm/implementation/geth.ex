@@ -123,6 +123,12 @@ defmodule Chain.EVM.Implementation.Geth do
     :ok
   end
 
+  @impl Chain.EVM
+  def version() do
+    %{err: nil, status: 0, out: out} = Porcelain.shell("#{executable!()} version")
+    out
+  end
+
   @doc """
   Create new account for geth
 
@@ -222,7 +228,6 @@ defmodule Chain.EVM.Implementation.Geth do
         throw("No executable 'geth' found in system...")
 
       path ->
-        Logger.debug("Found executable #{path}")
         path
     end
   end

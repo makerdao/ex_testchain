@@ -61,6 +61,11 @@ defmodule Chain.EVM do
   """
   @callback terminate(state :: term()) :: term()
 
+  @doc """
+  Callback will be called to get exact EVM version
+  """
+  @callback version() :: binary
+
   defmacro __using__(_opt) do
     quote do
       use GenServer, restart: :transient
@@ -211,6 +216,7 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def started?(%{id: id, http_port: http_port}, _) do
         Logger.debug("#{id}: Checking if EVM online")
+
         case JsonRpc.eth_coinbase("http://localhost:#{http_port}") do
           {:ok, <<"0x", _::binary>>} ->
             true
@@ -223,7 +229,10 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def handle_started(%{notify_pid: nil}, _internal_state), do: :ok
 
-      def handle_started(%{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port}, _internal_state) do
+      def handle_started(
+            %{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port},
+            _internal_state
+          ) do
         {:ok, coinbase} = JsonRpc.eth_coinbase("http://localhost:#{http_port}")
         {:ok, accounts} = JsonRpc.eth_accounts("http://localhost:#{http_port}")
 
@@ -238,6 +247,9 @@ defmodule Chain.EVM do
         send(pid, process)
         :ok
       end
+
+      @impl Chain.EVM
+      def version(), do: "x.x.x"
 
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
@@ -259,7 +271,7 @@ defmodule Chain.EVM do
       end
 
       # Allow to override functions
-      defoverridable handle_started: 2, started?: 2, handle_msg: 2
+      defoverridable handle_started: 2, started?: 2, handle_msg: 2, version: 0
     end
   end
 end
