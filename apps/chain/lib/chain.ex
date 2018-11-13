@@ -21,6 +21,15 @@ defmodule Chain do
   """
   @type evm_id :: non_neg_integer()
 
+  @typedoc """
+  Default account definition for chain
+  Might be in 2 different variants: 
+   - `binary` - Just account address
+   - `{binary, non_neg_integer()} - Address, balance.
+  ```
+  """
+  @type account :: binary | {binary, non_neg_integer()}
+
   @doc """
   Start a new EVM using given configuration
   It will generate unique ID for new evm process

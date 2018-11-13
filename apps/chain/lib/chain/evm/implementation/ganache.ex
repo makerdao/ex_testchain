@@ -5,7 +5,6 @@ defmodule Chain.EVM.Implementation.Ganache do
   use Chain.EVM
 
   alias Chain.EVM.Config
-  alias Chain.Seth
 
   @ganache_cli Path.absname("../../priv/presets/ganache/node_modules/.bin/ganache-cli")
   @wrapper_file Path.absname("../../wrapper.sh")
@@ -25,7 +24,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
     Logger.debug("#{id}: Starting ganache-cli")
     port = start_node(config)
-    {:ok, %{port: port, id: id, config: config}}
+    {:ok, %{port: port, id: id, config: config, mining: true}}
   end
 
   @impl Chain.EVM
@@ -35,20 +34,39 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def handle_msg({_pid, :data, :out, str}, %{id: id} = state) do
+  def started?(%{id: id, config: %{http_port: http_port}}) do
+    case exec_command(http_port, "eth_coinbase") do
+      {:ok, <<"0x", addr::binary>>} ->
+        Logger.debug("#{id}: coinbase 0x#{addr}")
+        true
+      err ->
+        IO.inspect(err)
+        false
+    end
+  end
+
+  @impl Chain.EVM
+  def handle_started(%{id: id} = state) do
+    Logger.debug("#{id}: Started successfully")
+    IO.inspect(state)
+    :ok
+  end
+
+  @impl Chain.EVM
+  def handle_msg(str, %{id: id} = state) do
     Logger.info("#{id}: #{str}")
     {:ok, state}
   end
 
   @impl Chain.EVM
   def start_mine(%{config: %Config{http_port: http_port}} = state) do
-    %{err: nil, status: 0, out: <<"true", _::binary>>} = exec_command("miner_start", http_port)
+    {:ok, true} = exec_command(http_port, "miner_start")
     {:ok, %{state | mining: true}}
   end
 
   @impl Chain.EVM
   def stop_mine(%{config: %Config{http_port: http_port}} = state) do
-    %{err: nil, status: 0, out: <<"true", _::binary>>} = exec_command("miner_stop", http_port)
+    {:ok, true} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
   end
 
@@ -103,14 +121,15 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   Example: 
   ```elixir
-  iex()> Chain.EVM.Implementation.Ganache.exec_command("eth_blockNumber", 8545)
+  iex()> Chain.EVM.Implementation.Ganache.exec_command(8545, "eth_blockNumber")
   %Porcelain.Result{err: nil, out: "80\n", status: 0} 
   ```
   """
-  @spec exec_command(binary, binary | non_neg_integer()) :: Porcelain.Result.t()
-  def exec_command(command, http_port) when is_binary(http_port) or is_integer(http_port) do
-    "localhost:#{http_port}"
-    |> Seth.call_rpc(command)
+  @spec exec_command(binary | non_neg_integer(), binary, term()) :: Porcelain.Result.t()
+  def exec_command(http_port, command, params \\ nil)
+      when is_binary(http_port) or is_integer(http_port) do
+    "http://localhost:#{http_port}"
+    |> JsonRpc.call(command, params)
   end
 
   # Get path for logging
@@ -130,7 +149,7 @@ defmodule Chain.EVM.Implementation.Ganache do
     [
       # Sorry but this **** never works as you expect so I have to wrap it into "killer"
       # Otherwise after application will be terminated - ganache still wwill be running
-      @wrapper_file, 
+      @wrapper_file,
       @ganache_cli,
       "--noVMErrorsOnRPCResponse",
       "-i #{network_id}",

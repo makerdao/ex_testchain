@@ -26,6 +26,16 @@ defmodule Chain.EVM do
   @callback stop(state :: any()) :: action_reply()
 
   @doc """
+  Callback is called to check if EVM started and responsive
+  """
+  @callback started?(state :: any()) :: boolean()
+
+  @doc """
+  Callback will be invoked after EVM started and confirmed it by `started?/1`
+  """
+  @callback handle_started(state :: any()) :: action_reply()
+
+  @doc """
   Handle incomming message from outside world
   """
   @callback handle_msg(msg :: term(), state :: any()) :: action_reply()
@@ -59,6 +69,10 @@ defmodule Chain.EVM do
 
       require Logger
 
+      # maximum amount of checks for evm started
+      # system checks if evm started every second
+      @max_start_checks 10
+
       defmodule State do
         @moduledoc false
 
@@ -87,6 +101,8 @@ defmodule Chain.EVM do
         case start(config) do
           {:ok, internal_state} ->
             Logger.debug("#{id}: Started successfully !")
+            # Schedule started check
+            check_started(self())
             {:noreply, %State{state | internal_state: internal_state}}
 
           {:error, err} ->
@@ -96,12 +112,45 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def handle_info(msg, %State{id: id, internal_state: internal_state} = state) do
-        Logger.debug("#{id}: Handling message from port")
-
+      def handle_info(
+            {_pid, :data, :out, msg},
+            %State{internal_state: internal_state} = state
+          ) do
         msg
+        |> String.replace_prefix("/n", "")
+        |> String.replace_prefix(" ", "")
         |> handle_msg(internal_state)
         |> handle_action(state)
+      end
+
+      def handle_info(
+            {:check_started, retries},
+            %State{id: id, internal_state: internal_state, config: config} = state
+          ) do
+        Logger.debug("#{id}: Check if evm started")
+
+        case started?(internal_state) do
+          true ->
+            Logger.debug("#{id}: EVM Finally started !")
+            internal_state
+            |> handle_started()
+            |> handle_action(state)
+
+          false ->
+            Logger.debug("#{id}: (#{retries}) not started fully yet...")
+
+            if retries >= @max_start_checks do
+              raise "#{id}: Failed to start evm"
+            end
+
+            check_started(self(), retries + 1)
+            {:noreply, state}
+        end
+      end
+
+      def handle_info(msg, %State{id: id} = state) do
+        Logger.debug("#{id}: Got msg #{inspect(msg)}")
+        {:noreply, state}
       end
 
       @doc false
@@ -152,6 +201,11 @@ defmodule Chain.EVM do
         terminate(internal_state)
       end
 
+      @doc """
+      Basic implementation for handle_started
+      """
+      def handle_started(_internal_state), do: :ok
+
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
         case reply do
@@ -165,6 +219,14 @@ defmodule Chain.EVM do
             Logger.error("#{id}: action failed with error: #{inspect(err)}")
         end
       end
+
+      # Send msg to check if evm started
+      defp check_started(pid, retries \\ 0) do
+        Process.send_after(pid, {:check_started, retries}, 1_000)
+      end
+
+      # Allow to override `handle_started/1` function
+      defoverridable handle_started: 1
     end
   end
 end

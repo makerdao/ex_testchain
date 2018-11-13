@@ -1,9 +1,9 @@
-defmodule Chain.MixProject do
+defmodule JsonRpc.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :chain,
+      app: :json_rpc,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -18,17 +18,15 @@ defmodule Chain.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
-      mod: {Chain.Application, []}
+      extra_applications: [:logger]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:poison, "~> 3.1"},
-      {:porcelain, "~> 2.0"},
-      {:json_rpc, in_umbrella: true}
+      {:httpoison, "~> 1.4"},
+      {:poison, "~> 3.1"}
     ]
   end
 end

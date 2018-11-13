@@ -47,42 +47,46 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def handle_msg(
-        {_, :data, :out, <<" modules:", _::binary>>},
-        %{id: id, config: %{notify_pid: pid}} = state
-      )
-      when is_pid(pid) do
-    Logger.warn("#{id}: Everything loaded...")
-    result = combine_result(state)
-    send(pid, result)
-    {:ok, state}
+  def started?(%{config: %{http_port: http_port}}) do
+    case exec_command(http_port, "eth_coinbase") do
+      {:ok, <<"0x", _::binary>>} ->
+        true
+
+      _ ->
+        false
+    end
   end
 
-  def handle_msg(
-        {_, :data, :out, <<"modules:", _::binary>>},
-        %{id: id, config: %{notify_pid: pid}} = state
-      )
-      when is_pid(pid) do
+  @impl Chain.EVM
+  def handle_started(%{id: id, config: %{notify_pid: pid, automine: mine}} = state) do
     Logger.warn("#{id}: Everything loaded...")
     result = combine_result(state)
+
+    if mine do
+      start_mine(state)
+    end
+
     send(pid, result)
-    {:ok, state}
+    {:ok, %{state | mining: mine}}
   end
 
-  def handle_msg({_pid, :data, :out, str}, %{id: id} = state) do
+  @impl Chain.EVM
+  def handle_msg(str, %{id: id} = state) do
     Logger.info("#{id}: #{str}")
     {:ok, state}
   end
 
   @impl Chain.EVM
   def start_mine(%{config: %Config{http_port: http_port}} = state) do
-    %{err: nil, status: 0, out: <<"null", _::binary>>} = exec_command("miner.start(1)", http_port)
+    {:ok, res} = exec_command(http_port, "miner_start", 1)
+    IO.inspect res
     {:ok, %{state | mining: true}}
   end
 
   @impl Chain.EVM
   def stop_mine(%{config: %Config{http_port: http_port}} = state) do
-    %{err: nil, status: 0, out: <<"true", _::binary>>} = exec_command("miner.stop()", http_port)
+    {:ok, res} = exec_command(http_port, "miner_stop")
+    IO.inspect res
     {:ok, %{state | mining: false}}
   end
 
@@ -123,7 +127,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @doc """
   Create new account for geth
 
-  Will create new accoutn with password from file `Path.absname("../../priv/presets/geth/account_password")`
+  Will create new account with password from file `Path.absname("../../priv/presets/geth/account_password")`
   using `geth account new` command.
 
   Example: 
@@ -183,7 +187,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @doc """
   Start geth node based on given parameters
   """
-  @spec start_node(Chain.EVM.Config.t(), [binary]) :: Porcelain.Process.t()
+  @spec start_node(Chain.EVM.Config.t(), [Chain.account()]) :: Porcelain.Process.t()
   def start_node(config, accounts) do
     Porcelain.spawn_shell(build_command(config, accounts), out: {:send, self()})
   end
@@ -197,14 +201,15 @@ defmodule Chain.EVM.Implementation.Geth do
 
   Example: 
   ```elixir
-  iex()> Chain.EVM.Implementation.Geth.exec_command("eth.blockNumber", 8545)
-  %Porcelain.Result{err: nil, out: "80\n", status: 0} 
+  iex()> Chain.EVM.Implementation.Geth.exec_command(8545, "eth_blockNumber")
+  {:ok, 80}
   ```
   """
-  @spec exec_command(binary, binary | non_neg_integer()) :: Porcelain.Result.t()
-  def exec_command(command, http_port) when is_binary(http_port) or is_integer(http_port) do
-    url = "http://localhost:#{http_port}"
-    Porcelain.shell("#{executable!()} --exec '#{command}' attach #{url}")
+  @spec exec_command(binary | non_neg_integer(), binary, term()) :: Porcelain.Result.t()
+  def exec_command(http_port, command, params \\ nil)
+      when is_binary(http_port) or is_integer(http_port) do
+    "http://localhost:#{http_port}"
+    |> JsonRpc.call(command, params)
   end
 
   @doc """
@@ -221,13 +226,9 @@ defmodule Chain.EVM.Implementation.Geth do
   """
   @spec list_accounts(non_neg_integer() | binary) :: {:ok, [binary]} | {:error, term()}
   def list_accounts(http_port) do
-    %{err: nil, status: 0, out: list} = exec_command("eth.accounts", http_port)
+    {:ok, list} = exec_command(http_port, "eth_accounts")
 
     list
-    |> String.replace("\"", "")
-    |> String.replace("\n", "")
-    |> String.replace(~r/[\[|\]]/, "")
-    |> String.split(", ")
   end
 
   #
@@ -247,15 +248,15 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   # Combine everything
-  defp combine_result(%{id: id, config: config, accounts: accounts}) do
+  defp combine_result(%{id: id, config: config}) do
     http_port = Map.get(config, :http_port)
 
-    %{err: nil, status: 0, out: <<"\"0x", address::binary-size(40), _::binary>>} =
-      exec_command("eth.coinbase", http_port)
+    {:ok, address} = exec_command(http_port, "eth_coinbase")
+    {:ok, accounts} = exec_command(http_port, "eth_accounts")
 
     %Chain.EVM.Process{
       id: id,
-      coinbase: "0x" <> address,
+      coinbase: address,
       accounts: accounts,
       rpc_url: "http://localhost:#{http_port}",
       ws_url: "ws://localhost:#{Map.get(config, :ws_port)}"
