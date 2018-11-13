@@ -34,31 +34,6 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def started?(%{id: id, config: %{http_port: http_port}}) do
-    case exec_command(http_port, "eth_coinbase") do
-      {:ok, <<"0x", addr::binary>>} ->
-        Logger.debug("#{id}: coinbase 0x#{addr}")
-        true
-      err ->
-        IO.inspect(err)
-        false
-    end
-  end
-
-  @impl Chain.EVM
-  def handle_started(%{id: id} = state) do
-    Logger.debug("#{id}: Started successfully")
-    IO.inspect(state)
-    :ok
-  end
-
-  @impl Chain.EVM
-  def handle_msg(str, %{id: id} = state) do
-    Logger.info("#{id}: #{str}")
-    {:ok, state}
-  end
-
-  @impl Chain.EVM
   def start_mine(%{config: %Config{http_port: http_port}} = state) do
     {:ok, true} = exec_command(http_port, "miner_start")
     {:ok, %{state | mining: true}}

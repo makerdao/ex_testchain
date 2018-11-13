@@ -47,46 +47,45 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def started?(%{config: %{http_port: http_port}}) do
-    case exec_command(http_port, "eth_coinbase") do
-      {:ok, <<"0x", _::binary>>} ->
-        true
-
-      _ ->
-        false
-    end
-  end
-
-  @impl Chain.EVM
-  def handle_started(%{id: id, config: %{notify_pid: pid, automine: mine}} = state) do
+  def handle_started(
+        %{id: id, notify_pid: pid, automine: mine, http_port: http_port, ws_port: ws_port},
+        state
+      ) do
     Logger.warn("#{id}: Everything loaded...")
-    result = combine_result(state)
 
+    # If needed to send process details somewhere - go ahead
+    unless is_nil(pid) do
+      {:ok, address} = exec_command(http_port, "eth_coinbase")
+      {:ok, accounts} = exec_command(http_port, "eth_accounts")
+
+      result = %Chain.EVM.Process{
+        id: id,
+        coinbase: address,
+        accounts: accounts,
+        rpc_url: "http://localhost:#{http_port}",
+        ws_url: "ws://localhost:#{ws_port}"
+      }
+
+      send(pid, result)
+    end
+
+    # Check for mining. Starting if automine is on
     if mine do
       start_mine(state)
     end
 
-    send(pid, result)
     {:ok, %{state | mining: mine}}
   end
 
   @impl Chain.EVM
-  def handle_msg(str, %{id: id} = state) do
-    Logger.info("#{id}: #{str}")
-    {:ok, state}
-  end
-
-  @impl Chain.EVM
   def start_mine(%{config: %Config{http_port: http_port}} = state) do
-    {:ok, res} = exec_command(http_port, "miner_start", 1)
-    IO.inspect res
+    {:ok, nil} = exec_command(http_port, "miner_start", [1])
     {:ok, %{state | mining: true}}
   end
 
   @impl Chain.EVM
   def stop_mine(%{config: %Config{http_port: http_port}} = state) do
-    {:ok, res} = exec_command(http_port, "miner_stop")
-    IO.inspect res
+    {:ok, nil} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
   end
 
@@ -212,25 +211,6 @@ defmodule Chain.EVM.Implementation.Geth do
     |> JsonRpc.call(command, params)
   end
 
-  @doc """
-  Load list of existing accounts existing in chain
-
-  Example: 
-  ```elixir
-  iex()> Chain.EVM.Implementation.Geth.list_accounts(8545)
-  ["0x603a0993495dd494f1b6dbbcef8d1f9d7fe170e0",
-    "0x62161e957c53bfba349ab853ad31211e4df1c9f9",
-    "0xf9fe5d779726c9dd9fd19d1f27c0f29a13432d37",
-    "0xe21f7b35be07d761645f5aca91ddc1dad781f606"]
-  ```
-  """
-  @spec list_accounts(non_neg_integer() | binary) :: {:ok, [binary]} | {:error, term()}
-  def list_accounts(http_port) do
-    {:ok, list} = exec_command(http_port, "eth_accounts")
-
-    list
-  end
-
   #
   # Private functions
   #
@@ -245,22 +225,6 @@ defmodule Chain.EVM.Implementation.Geth do
         Logger.debug("Found executable #{path}")
         path
     end
-  end
-
-  # Combine everything
-  defp combine_result(%{id: id, config: config}) do
-    http_port = Map.get(config, :http_port)
-
-    {:ok, address} = exec_command(http_port, "eth_coinbase")
-    {:ok, accounts} = exec_command(http_port, "eth_accounts")
-
-    %Chain.EVM.Process{
-      id: id,
-      coinbase: address,
-      accounts: accounts,
-      rpc_url: "http://localhost:#{http_port}",
-      ws_url: "ws://localhost:#{Map.get(config, :ws_port)}"
-    }
   end
 
   # Writing `genesis.json` file into defined `db_path`

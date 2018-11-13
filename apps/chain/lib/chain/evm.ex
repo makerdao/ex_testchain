@@ -28,12 +28,12 @@ defmodule Chain.EVM do
   @doc """
   Callback is called to check if EVM started and responsive
   """
-  @callback started?(state :: any()) :: boolean()
+  @callback started?(config :: Chain.EVM.Config.t(), state :: any()) :: boolean()
 
   @doc """
-  Callback will be invoked after EVM started and confirmed it by `started?/1`
+  Callback will be invoked after EVM started and confirmed it by `started?/2`
   """
-  @callback handle_started(state :: any()) :: action_reply()
+  @callback handle_started(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Handle incomming message from outside world
@@ -129,11 +129,12 @@ defmodule Chain.EVM do
           ) do
         Logger.debug("#{id}: Check if evm started")
 
-        case started?(internal_state) do
+        case started?(config, internal_state) do
           true ->
             Logger.debug("#{id}: EVM Finally started !")
-            internal_state
-            |> handle_started()
+
+            config
+            |> handle_started(internal_state)
             |> handle_action(state)
 
           false ->
@@ -201,10 +202,42 @@ defmodule Chain.EVM do
         terminate(internal_state)
       end
 
-      @doc """
-      Basic implementation for handle_started
-      """
-      def handle_started(_internal_state), do: :ok
+      @impl Chain.EVM
+      def handle_msg(str, %{id: id} = state) do
+        Logger.info("#{id}: #{str}")
+        {:ok, state}
+      end
+
+      @impl Chain.EVM
+      def started?(%{id: id, http_port: http_port}, _) do
+        Logger.debug("#{id}: Checking if EVM online")
+        case JsonRpc.eth_coinbase("http://localhost:#{http_port}") do
+          {:ok, <<"0x", _::binary>>} ->
+            true
+
+          _ ->
+            false
+        end
+      end
+
+      @impl Chain.EVM
+      def handle_started(%{notify_pid: nil}, _internal_state), do: :ok
+
+      def handle_started(%{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port}, _internal_state) do
+        {:ok, coinbase} = JsonRpc.eth_coinbase("http://localhost:#{http_port}")
+        {:ok, accounts} = JsonRpc.eth_accounts("http://localhost:#{http_port}")
+
+        process = %Chain.EVM.Process{
+          id: id,
+          coinbase: coinbase,
+          accounts: accounts,
+          rpc_url: "http://localhost:#{http_port}",
+          ws_url: "ws://localhost:#{ws_port}"
+        }
+
+        send(pid, process)
+        :ok
+      end
 
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
@@ -225,8 +258,8 @@ defmodule Chain.EVM do
         Process.send_after(pid, {:check_started, retries}, 1_000)
       end
 
-      # Allow to override `handle_started/1` function
-      defoverridable handle_started: 1
+      # Allow to override functions
+      defoverridable handle_started: 2, started?: 2, handle_msg: 2
     end
   end
 end
