@@ -1,7 +1,8 @@
 defmodule Cli.Main do
   @commands %{
+    "start" => "Interactive shell for starting chains",
     "exit" => "Exit from ex_testchain",
-    "start" => "Interactive shell for starting chains"
+    "help" => "Prints this help message"
   }
 
   @switches [
@@ -35,6 +36,7 @@ defmodule Cli.Main do
 
   def parse_args(args) do
     {params, _, _} = OptionParser.parse(args, aliases: @aliases, switches: @switches)
+
     params
     |> Enum.into(%{})
   end
@@ -48,7 +50,6 @@ defmodule Cli.Main do
   end
 
   def process_args(%{start: true} = config) do
-
     %Chain.EVM.Config{
       type: Map.get(config, :type, "geth") |> String.to_atom(),
       id: Map.get(config, :id),
@@ -67,8 +68,7 @@ defmodule Cli.Main do
   end
 
   def process_args(_) do
-    IO.puts("Welcome to the ex_testchain project!")
-    print_help_message()
+    print_interactive_help_message()
     receive_command()
   end
 
@@ -88,14 +88,56 @@ defmodule Cli.Main do
     receive_command()
   end
 
+  defp execute_command(["help"]) do
+    print_interactive_help_message()
+    receive_command()
+  end
+
   defp execute_command(_unknown) do
     IO.puts("\nInvalid command. I don't know what to do.")
-    print_help_message()
+    print_interactive_help_message()
 
     receive_command()
   end
 
   defp print_help_message do
+    """
+    ExTestchain is project that will help you to work with a local testchains.
+
+    Without any option CLI will start in interactive mode and will print help there.
+
+    List of available commands:
+
+     -h|--help      Shows this help message
+     -v|--version   Shows CLI tools versions and all other version info for system
+     -s|--start     Start new chain and enter interactive mode.
+
+    Start new chain:
+
+    To start new chain use `-s --datadir=/some/dir` options.
+    Example: 
+
+      #{Cli.selected("./cli -s --datadir=/tmp/test")}
+
+    Other start options:
+
+      -t|--type       Chain type. Available options are: [geth|ganache] (default: geth)
+      -a|--accounts   Amount of account needed to create on chain start (default: 1)
+      --datadir       Data directory for the chain databases and keystore
+      --rpcport       HTTP-RPC server listening port (default: 8545)
+      --wsport        WS-RPC server listening port (default: 8546)
+      --out           File where all chain logs will be streamed
+      --networkid     Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby) (default: 999)
+      --automine      Enable mining (default: disabled)
+
+    After starting new chain system will enter interactive mode.
+    Where you can type #{Cli.selected("help")} for getting help.
+    """
+    |> IO.puts()
+  end
+
+  defp print_interactive_help_message do
+    IO.puts(IO.ANSI.yellow() <> "\nWelcome to ex_testchain interactive mode !" <> IO.ANSI.reset())
     IO.puts("\nWe supports following commands:\n")
 
     @commands
