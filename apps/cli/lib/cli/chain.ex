@@ -51,9 +51,24 @@ defmodule Cli.Chain do
       notify_pid: self()
     }
 
+    start(config)
+  end
+
+  @doc """
+  Start new chain using existing configs
+  """
+  @spec start(Chain.EVM.Config.t()) :: term()
+  def start(%Chain.EVM.Config{db_path: ""}) do
+    (IO.ANSI.red() <> "Please provide --datadir=/some/path to start new chain" <> IO.ANSI.reset())
+    |> IO.puts()
+
+    System.halt(1)
+  end
+
+  def start(%Chain.EVM.Config{type: type} = config) do
     {:ok, id} = Chain.start(config)
 
-    "Your chain ID is #{Cli.selected(id)}.\n"
+    "Starting new #{Cli.selected(to_string(type))} chain with ID : #{Cli.selected(id)}.\n"
     |> IO.puts()
 
     # Timeout feature
@@ -61,8 +76,8 @@ defmodule Cli.Chain do
     Process.send_after(self(), :timeout, @timeout)
 
     [
-      frames: :bouncing_ball,
-      text: "Loading chain...",
+      frames: :dots,
+      text: "Setting up your chain...",
       done: " "
     ]
     |> CliSpinners.spin_fun(fn ->
