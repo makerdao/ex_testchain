@@ -7,6 +7,9 @@ defmodule Chain.EVM do
 
   alias Chain.EVM.Config
 
+  # Amount of ms the server is allowed to spend initializing or it will be terminated
+  @timeout Application.get_env(:chain, :kill_timeout, 60_000)
+
   @typedoc """
   Default evm action reply message
   """
@@ -93,7 +96,10 @@ defmodule Chain.EVM do
       def start_link(%Config{id: nil}), do: {:error, :id_required}
 
       def start_link(%Config{id: id} = config) do
-        GenServer.start_link(__MODULE__, config, name: {:via, Registry, {Chain.EVM.Registry, id}})
+        GenServer.start_link(__MODULE__, config,
+          name: {:via, Registry, {Chain.EVM.Registry, id}},
+          timeout: unquote(@timeout)
+        )
       end
 
       @doc false
@@ -233,8 +239,13 @@ defmodule Chain.EVM do
             %{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port},
             _internal_state
           ) do
-        {:ok, coinbase} = JsonRpc.eth_coinbase("http://localhost:#{http_port}")
-        {:ok, accounts} = JsonRpc.eth_accounts("http://localhost:#{http_port}")
+        # Making request using async to not block scheduler
+        [{:ok, coinbase}, {:ok, accounts}] =
+          [
+            Task.async(fn -> JsonRpc.eth_coinbase("http://localhost:#{http_port}") end),
+            Task.async(fn -> JsonRpc.eth_accounts("http://localhost:#{http_port}") end)
+          ]
+          |> Enum.map(&Task.await/1)
 
         process = %Chain.EVM.Process{
           id: id,
@@ -273,5 +284,18 @@ defmodule Chain.EVM do
       # Allow to override functions
       defoverridable handle_started: 2, started?: 2, handle_msg: 2, version: 0
     end
+  end
+
+  @doc """
+  Child specification for supervising given `Chain.EVM` module
+  """
+  @spec child_spec(module(), Chain.EVM.Config.t()) :: :supervisor.child_spec()
+  def child_spec(module, %Chain.EVM.Config{id: id} = config) do
+    %{
+      id: id,
+      start: {module, :start_link, [config]},
+      restart: :transient,
+      shutdown: @timeout
+    }
   end
 end

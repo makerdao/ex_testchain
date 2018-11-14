@@ -55,8 +55,13 @@ defmodule Chain.EVM.Implementation.Geth do
 
     # If needed to send process details somewhere - go ahead
     unless is_nil(pid) do
-      {:ok, address} = exec_command(http_port, "eth_coinbase")
-      {:ok, accounts} = exec_command(http_port, "eth_accounts")
+      # Running http requests in async mode to not block scheduler
+      [{:ok, address}, {:ok, accounts}] =
+        [
+          Task.async(fn -> exec_command(http_port, "eth_coinbase") end),
+          Task.async(fn -> exec_command(http_port, "eth_accounts") end)
+        ]
+        |> Enum.map(&Task.await/1)
 
       result = %Chain.EVM.Process{
         id: id,
@@ -163,9 +168,13 @@ defmodule Chain.EVM.Implementation.Geth do
   """
   @spec create_accounts(non_neg_integer(), binary) :: [binary]
   def create_accounts(amount, db_path) when amount >= 1 do
+    # TODO: need to use poolboy to create accounts in async worker pools
+    # Task.async/await might crash system because of to many `geth` processes at once
     1..amount
     |> Enum.map(fn _ -> create_account(db_path) end)
   end
+
+  def create_accounts(_, _), do: []
 
   @doc """
   Bootstrap and initialize a new genesis block.

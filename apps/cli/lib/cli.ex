@@ -23,5 +23,5 @@ defmodule Cli do
   def default("", default), do: default
   def default(str, _), do: str
 
-  def selected(), do: IO.ANSI.underline() <> IO.ANSI.cyan()
+  def selected(text \\ ""), do: "#{IO.ANSI.underline()}#{IO.ANSI.cyan()}#{text}#{IO.ANSI.reset()}"
 end

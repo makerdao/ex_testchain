@@ -41,7 +41,7 @@ defmodule Cli.Main do
   defp execute_command(["quit"]), do: IO.puts("\nQuiting...")
 
   defp execute_command(["start"]) do
-    Cli.Chain.start()
+    Cli.Chain.start_interactive()
     receive_command()
   end
 

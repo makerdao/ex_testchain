@@ -136,9 +136,7 @@ defmodule Chain do
 
   # Starts new EVM genserver inser default supervisor
   defp start_evm_process(module, %Config{id: id} = config) do
-    {:ok, _pid} =
-      %{id: id, start: {module, :start_link, [config]}, restart: :transient}
-      |> Chain.EVM.Supervisor.start_child()
+    {:ok, _pid} = Chain.EVM.Supervisor.start_evm(module, config)
 
     {:ok, id}
   end

@@ -10,23 +10,6 @@ use Mix.Config
 
 config :porcelain, driver: Porcelain.Driver.Basic
 
-# You can configure your application as:
-#
-#     config :chain, key: :value
-#
-# and access this configuration in your application as:
-#
-#     Application.get_env(:chain, :key)
-#
-# You can also configure a 3rd-party app:
-#
-#     config :logger, level: :info
-#
+# Amount of time in ms process allowed to perform "blocking" work before supervisor will terminate it
+config :chain, kill_timeout: 60_000
 
-# It is also possible to import configuration files, relative to this
-# directory. For example, you can emulate configuration per environment
-# by uncommenting the line below and defining dev.exs, test.exs and such.
-# Configuration from the imported file will override the ones defined
-# here (which is why it is important to import them last).
-#
-#     import_config "#{Mix.env()}.exs"

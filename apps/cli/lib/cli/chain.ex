@@ -1,10 +1,14 @@
 defmodule Cli.Chain do
-  def start() do
+
+  @doc """
+  Start interactive shell that will collect all needed vars and start new chain
+  """
+  @spec start_interactive() :: none()
+  def start_interactive() do
     IO.puts("\nStarting new chain")
 
     type =
-      ("What chain type do you want [" <>
-         Cli.selected() <> "geth" <> IO.ANSI.reset() <> "|ganache]:")
+      "What chain type do you want [#{Cli.selected("geth")}|ganache]:"
       |> Cli.promt("geth")
 
     db_path =
@@ -12,28 +16,27 @@ defmodule Cli.Chain do
       |> Cli.promt!()
 
     http_port =
-      ("Your HTTP JSONRPC port [" <> Cli.selected() <> "8545" <> IO.ANSI.reset() <> "]:")
+      "Your HTTP JSONRPC port [#{Cli.selected("8545")}]:"
       |> Cli.promt("8545")
 
     ws_port =
       if type == "geth" do
-        ("Your WS JSONRPC port [" <> Cli.selected() <> "8546" <> IO.ANSI.reset() <> "]:")
+        "Your WS JSONRPC port [#{Cli.selected("8546")}]:"
         |> Cli.promt("8546")
       else
         "8545"
       end
 
     output =
-      ("Path where to store EVM logs [" <> Cli.selected() <> "empty" <> IO.ANSI.reset() <> "]:")
+      "Path where to store EVM logs [#{Cli.selected("empty")}]:"
       |> Cli.promt()
 
     automine =
-      ("Do you need automining [y|" <> Cli.selected() <> "n" <> IO.ANSI.reset() <> "]:")
+      "Do you need automining [y|#{Cli.selected("n")}]:"
       |> Cli.promt("n")
 
     accounts =
-      ("How many accounts do you need to create [" <>
-         Cli.selected() <> "1" <> IO.ANSI.reset() <> "]:")
+      "How many accounts do you need to create [#{Cli.selected("1")}]:"
       |> Cli.promt("1")
 
     config = %Chain.EVM.Config{
