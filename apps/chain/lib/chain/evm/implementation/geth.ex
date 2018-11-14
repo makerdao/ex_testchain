@@ -51,7 +51,7 @@ defmodule Chain.EVM.Implementation.Geth do
         %{id: id, notify_pid: pid, automine: mine, http_port: http_port, ws_port: ws_port},
         state
       ) do
-    Logger.warn("#{id}: Everything loaded...")
+    Logger.debug("#{id}: Everything loaded...")
 
     # If needed to send process details somewhere - go ahead
     unless is_nil(pid) do

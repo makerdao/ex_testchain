@@ -30,7 +30,8 @@ defmodule Cli.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:chain, in_umbrella: true}
+      {:chain, in_umbrella: true},
+      {:cli_spinners, "~> 0.1.0"}
     ]
   end
 end

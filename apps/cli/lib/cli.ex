@@ -24,4 +24,23 @@ defmodule Cli do
   def default(str, _), do: str
 
   def selected(text \\ ""), do: "#{IO.ANSI.underline()}#{IO.ANSI.cyan()}#{text}#{IO.ANSI.reset()}"
+
+  @doc """
+  Marking text as error message in CLI
+  """
+  @spec error(binary) :: binary
+  def error(text) do
+    """
+    #{IO.ANSI.red()}error:#{IO.ANSI.reset()} #{text}
+    """
+  end
+
+  @doc """
+  Colorize text as comment
+  """
+  @spec comment(binary) :: binary
+  def comment(text) do
+    IO.ANSI.light_black() <> text <> IO.ANSI.reset()
+  end
+
 end

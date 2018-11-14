@@ -56,7 +56,9 @@ defmodule Cli.Main do
     IO.puts("\nWe supports following commands:\n")
 
     @commands
-    |> Enum.map(fn {command, description} -> IO.puts("  #{command} - #{description}") end)
+    |> Enum.map(fn {command, description} ->
+      IO.puts("  #{IO.ANSI.yellow()}#{command}#{IO.ANSI.reset()} - #{description}")
+    end)
   end
 
   defp print_version_message() do

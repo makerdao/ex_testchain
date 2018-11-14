@@ -215,7 +215,6 @@ defmodule Chain.EVM do
 
       @impl Chain.EVM
       def handle_msg(str, %{id: id} = state) do
-        Logger.info("#{id}: #{str}")
         {:ok, state}
       end
 
