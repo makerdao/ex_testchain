@@ -2,7 +2,10 @@ defmodule Cli.Main do
   @commands %{
     "start" => "Interactive shell for starting chains",
     "exit" => "Exit from ex_testchain",
-    "help" => "Prints this help message"
+    "help" => "Prints this help message",
+    "mine_start" => "Start mining for chain ID",
+    "mine_stop" => "Stop mining for chain ID",
+    "make_snapshot" => "Make snaphot for chain"
   }
 
   @switches [
@@ -90,6 +93,41 @@ defmodule Cli.Main do
 
   defp execute_command(["help"]) do
     print_interactive_help_message()
+    receive_command()
+  end
+
+  defp execute_command(["mine_start"]) do
+    Cli.Chain.mine_start("")
+    receive_command()
+  end
+
+  defp execute_command(["mine_start", id]) do
+    Cli.Chain.mine_start(id)
+    receive_command()
+  end
+
+  defp execute_command(["mine_stop"]) do
+    Cli.Chain.mine_start("")
+    receive_command()
+  end
+
+  defp execute_command(["mine_stop", id]) do
+    Cli.Chain.mine_stop(id)
+    receive_command()
+  end
+
+  defp execute_command(["take_snapshot"]) do
+    Cli.Chain.take_snapshot("", "")
+    receive_command()
+  end
+
+  defp execute_command(["take_snapshot", id]) do
+    Cli.Chain.take_snapshot(id, "")
+    receive_command()
+  end
+
+  defp execute_command(["take_snapshot", id, path]) do
+    Cli.Chain.take_snapshot(id, path)
     receive_command()
   end
 

@@ -94,6 +94,110 @@ defmodule Cli.Chain do
     end)
   end
 
+  @doc """
+  Start mining process for selected chain
+  Usage: 
+
+      iex> Cli.Chain.mine_start("4942249475330991771")
+
+  Will print error in case of something wrong
+  """
+  @spec mine_start(binary) :: none()
+  def mine_start("") do
+    """
+    #{IO.ANSI.red()}Usage #{IO.ANSI.underline()}mine_start your_chain_id#{IO.ANSI.reset()}
+    """
+    |> IO.puts()
+  end
+
+  def mine_start(id) do
+    try do
+      :ok =
+        id
+        |> String.to_integer()
+        |> Chain.start_mine()
+
+      "#{IO.ANSI.yellow()}Mining started for chain #{id}#{IO.ANSI.reset()}"
+      |> IO.puts()
+    rescue
+      _ ->
+        print_no_chain()
+    end
+  end
+
+  @doc """
+  Stop mining process for selected chain
+  Usage: 
+
+      iex> Cli.Chain.mine_stop("4942249475330991771")
+
+  Will print error in case of something wrong
+  """
+  @spec mine_stop(binary) :: none()
+  def mine_stop("") do
+    """
+    #{IO.ANSI.light_yellow()}Usage `mine_stop your_chain_id` #{IO.ANSI.reset()}
+    """
+    |> IO.puts()
+  end
+
+  def mine_stop(id) do
+    try do
+      :ok =
+        id
+        |> String.to_integer()
+        |> Chain.stop_mine()
+
+      "#{IO.ANSI.yellow()}Mining stopped for chain #{id}#{IO.ANSI.reset()}"
+      |> IO.puts()
+    rescue
+      _ ->
+        print_no_chain()
+    end
+  end
+
+  @doc """
+  Takes snapshot for chain
+  Usage: 
+
+      iex> Cli.Chain.take_snapshot("4942249475330991771")
+
+  Will print error in case of something wrong
+  """
+  @spec take_snapshot(binary, binary) :: none()
+  def take_snapshot("", _) do
+    """
+    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
+    """
+    |> IO.puts()
+  end
+  def take_snapshot(_, "") do
+    """
+    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
+    """
+    |> IO.puts()
+  end
+
+  def take_snapshot(id, path) do
+    try do
+      :ok =
+        id
+        |> String.to_integer()
+        |> Chain.take_snapshot(path)
+
+      "#{IO.ANSI.yellow()}Snapshot was taken and placed #{path} for chain #{id}#{IO.ANSI.reset()}"
+      |> IO.puts()
+    rescue
+      _ ->
+        print_no_chain()
+    end
+  end
+
+  defp print_no_chain do
+    "#{IO.ANSI.red()}No such chain found. Sorry...#{IO.ANSI.reset()}"
+    |> IO.puts()
+  end
+
   defp print_result(%Chain.EVM.Process{} = result) do
     """
     \n\n#{IO.ANSI.yellow()}Your chain is ready to work !#{IO.ANSI.reset()}
