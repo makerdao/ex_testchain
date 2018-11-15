@@ -114,7 +114,6 @@ defmodule Cli.Chain do
     try do
       :ok =
         id
-        |> String.to_integer()
         |> Chain.start_mine()
 
       "#{IO.ANSI.yellow()}Mining started for chain #{id}#{IO.ANSI.reset()}"
@@ -145,7 +144,6 @@ defmodule Cli.Chain do
     try do
       :ok =
         id
-        |> String.to_integer()
         |> Chain.stop_mine()
 
       "#{IO.ANSI.yellow()}Mining stopped for chain #{id}#{IO.ANSI.reset()}"
@@ -160,20 +158,25 @@ defmodule Cli.Chain do
   Takes snapshot for chain
   Usage: 
 
-      iex> Cli.Chain.take_snapshot("4942249475330991771")
+      iex> Cli.Chain.take_snapshot("4942249475330991771", "/path/to/snapshot")
 
   Will print error in case of something wrong
   """
   @spec take_snapshot(binary, binary) :: none()
   def take_snapshot("", _) do
     """
-    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
+    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{
+      IO.ANSI.reset()
+    }
     """
     |> IO.puts()
   end
+
   def take_snapshot(_, "") do
     """
-    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
+    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{
+      IO.ANSI.reset()
+    }
     """
     |> IO.puts()
   end
@@ -182,10 +185,11 @@ defmodule Cli.Chain do
     try do
       :ok =
         id
-        |> String.to_integer()
         |> Chain.take_snapshot(path)
 
-      "#{IO.ANSI.yellow()}Snapshot was taken and placed #{path} for chain #{id}#{IO.ANSI.reset()}"
+      "#{IO.ANSI.light_yellow()}Snapshot was taken and placed #{path} for chain #{id}#{
+        IO.ANSI.reset()
+      }"
       |> IO.puts()
     rescue
       _ ->

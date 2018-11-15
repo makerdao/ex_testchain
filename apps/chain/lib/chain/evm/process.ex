@@ -3,7 +3,7 @@ defmodule Chain.EVM.Process do
   EVM Process identifier
   """
   @type t :: %__MODULE__{
-          id: non_neg_integer(),
+          id: Chain.evm_id(),
           coinbase: binary,
           accounts: [binary | {binary, non_neg_integer()}],
           rpc_url: binary,

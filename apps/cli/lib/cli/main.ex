@@ -180,7 +180,7 @@ defmodule Cli.Main do
 
     @commands
     |> Enum.map(fn {command, description} ->
-      IO.puts("  #{IO.ANSI.yellow()}#{command}#{IO.ANSI.reset()} - #{description}")
+      IO.puts("  #{IO.ANSI.light_yellow()}#{command}#{IO.ANSI.reset()} - #{description}")
     end)
   end
 

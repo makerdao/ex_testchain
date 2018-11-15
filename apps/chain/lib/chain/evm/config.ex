@@ -4,7 +4,7 @@ defmodule Chain.EVM.Config do
 
   Options:
   - `type` - EVM type. (Default: `:ganache`)
-  - `id` - Random unique internal process identificator. Example: `11296068888839073704`. If empty system will generate it automatically
+  - `id` - Random unique internal process identificator. Example: `"11296068888839073704"`. If empty system will generate it automatically
   - `http_port` - HTTP JSONRPC port (Default: `8545`)
   - `ws_port` - WS JSONRPC port (for ganache it will be ignored and `http_port` will be used) (Default: `8546`)
   - `network_id` - Network ID (Default: `999`)
@@ -16,7 +16,7 @@ defmodule Chain.EVM.Config do
   """
   @type t :: %__MODULE__{
           type: Chain.evm_type(),
-          id: non_neg_integer(),
+          id: Chain.evm_id() | nil,
           http_port: non_neg_integer(),
           ws_port: non_neg_integer(),
           network_id: non_neg_integer(),
