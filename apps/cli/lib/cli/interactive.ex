@@ -32,6 +32,8 @@ defmodule Cli.Chain.Interactive do
     |> IO.puts()
   end
 
+  defp execute_command(["exit"], id), do: execute_command(["stop"], id)
+
   defp execute_command(["stop"], id) do
     Chain.stop(id)
 
@@ -51,8 +53,11 @@ defmodule Cli.Chain.Interactive do
     Cli.Chain.mine_stop(id)
   end
 
-  defp execute_command(["take_snapshot"], id) do
-    Cli.Chain.take_snapshot(id, "")
+  defp execute_command(["take_snapshot"], _id) do
+    """
+    #{IO.ANSI.light_red()}Usage `take_snapshot /path/to/snapshot`#{IO.ANSI.reset()}
+    """
+    |> IO.puts()
   end
 
   defp execute_command(["take_snapshot", path], id) do

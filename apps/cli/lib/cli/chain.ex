@@ -59,7 +59,8 @@ defmodule Cli.Chain do
   """
   @spec start(Chain.EVM.Config.t()) :: term()
   def start(%Chain.EVM.Config{db_path: ""}) do
-    (IO.ANSI.red() <> "Please provide --datadir=/some/path to start new chain" <> IO.ANSI.reset())
+    (IO.ANSI.light_red() <>
+       "Please provide --datadir=/some/path to start new chain" <> IO.ANSI.reset())
     |> IO.puts()
 
     System.halt(1)
@@ -92,6 +93,9 @@ defmodule Cli.Chain do
           Cli.error("Something wrong...")
       end
     end)
+
+    # Base return value
+    {:ok, id}
   end
 
   @doc """
@@ -105,7 +109,7 @@ defmodule Cli.Chain do
   @spec mine_start(binary) :: none()
   def mine_start("") do
     """
-    #{IO.ANSI.red()}Usage #{IO.ANSI.underline()}mine_start your_chain_id#{IO.ANSI.reset()}
+    #{IO.ANSI.light_red()}Usage #{IO.ANSI.underline()}mine_start your_chain_id#{IO.ANSI.reset()}
     """
     |> IO.puts()
   end
@@ -135,7 +139,7 @@ defmodule Cli.Chain do
   @spec mine_stop(binary) :: none()
   def mine_stop("") do
     """
-    #{IO.ANSI.light_yellow()}Usage `mine_stop your_chain_id` #{IO.ANSI.reset()}
+    #{IO.ANSI.light_red()}Usage `mine_stop your_chain_id` #{IO.ANSI.reset()}
     """
     |> IO.puts()
   end
@@ -165,18 +169,14 @@ defmodule Cli.Chain do
   @spec take_snapshot(binary, binary) :: none()
   def take_snapshot("", _) do
     """
-    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{
-      IO.ANSI.reset()
-    }
+    #{IO.ANSI.light_red()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
     """
     |> IO.puts()
   end
 
   def take_snapshot(_, "") do
     """
-    #{IO.ANSI.light_yellow()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{
-      IO.ANSI.reset()
-    }
+    #{IO.ANSI.light_red()}Usage `take_snapshot your_chain_id /path/to/snapshot` #{IO.ANSI.reset()}
     """
     |> IO.puts()
   end

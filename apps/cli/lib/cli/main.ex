@@ -56,21 +56,22 @@ defmodule Cli.Main do
   end
 
   def process_args(%{start: true} = config) do
-    %Chain.EVM.Config{
-      type: Map.get(config, :type, "geth") |> String.to_atom(),
-      id: Map.get(config, :id),
-      http_port: Map.get(config, :rpcport, 8545),
-      ws_port: Map.get(config, :wsport, 8546),
-      network_id: Map.get(config, :networkid, 999),
-      db_path: Map.get(config, :datadir, ""),
-      accounts: Map.get(config, :accounts, 1),
-      output: Map.get(config, :out, ""),
-      automine: Map.get(config, :automine, false),
-      notify_pid: self()
-    }
-    |> Cli.Chain.start()
+    {:ok, id} =
+      %Chain.EVM.Config{
+        type: Map.get(config, :type, "geth") |> String.to_atom(),
+        id: Map.get(config, :id),
+        http_port: Map.get(config, :rpcport, 8545),
+        ws_port: Map.get(config, :wsport, 8546),
+        network_id: Map.get(config, :networkid, 999),
+        db_path: Map.get(config, :datadir, ""),
+        accounts: Map.get(config, :accounts, 1),
+        output: Map.get(config, :out, ""),
+        automine: Map.get(config, :automine, false),
+        notify_pid: self()
+      }
+      |> Cli.Chain.start()
 
-    receive_command()
+    Interactive.start(id)
   end
 
   def process_args(_) do
