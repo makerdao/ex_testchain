@@ -27,7 +27,7 @@ defmodule Cli.Chain.Interactive do
 
   defp execute_command(["h"], id), do: execute_command(["help"], id)
 
-  defp execute_command(["help"], id) do
+  defp execute_command(["help"], _id) do
     @help
     |> IO.puts()
   end
@@ -59,7 +59,7 @@ defmodule Cli.Chain.Interactive do
     Cli.Chain.take_snapshot(id, path)
   end
 
-  defp execute_command(command, id) do
+  defp execute_command(command, _id) do
     IO.puts("Unknown command passed #{List.first(command)}")
   end
 

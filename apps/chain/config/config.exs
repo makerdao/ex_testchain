@@ -14,4 +14,3 @@ config :porcelain, driver: Porcelain.Driver.Basic
 config :chain, kill_timeout: 60_000
 
 # config :logger, level: :info
-

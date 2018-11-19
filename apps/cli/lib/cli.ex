@@ -42,5 +42,4 @@ defmodule Cli do
   def comment(text) do
     IO.ANSI.light_black() <> text <> IO.ANSI.reset()
   end
-
 end
