@@ -183,11 +183,11 @@ defmodule Cli.Chain do
 
   def take_snapshot(id, path) do
     try do
-      :ok =
+      {:ok, snapshot} =
         id
         |> Chain.take_snapshot(path)
 
-      "#{IO.ANSI.light_yellow()}Snapshot was taken and placed #{path} for chain #{id}#{
+      "#{IO.ANSI.light_yellow()}Snapshot was taken to #{snapshot} for chain #{id}#{
         IO.ANSI.reset()
       }"
       |> IO.puts()
