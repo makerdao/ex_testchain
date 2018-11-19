@@ -321,7 +321,7 @@ defmodule Chain.EVM.Implementation.Geth do
   defp wait_started(%{config: %{http_port: http_port}} = state, times) do
     case exec_command(http_port, "eth_coinbase") do
       {:ok, _} ->
-        true
+        :ok
 
       _ ->
         # Waiting
