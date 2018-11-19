@@ -1,11 +1,14 @@
 defmodule Cli.Main do
+  alias Cli.Chain.Interactive
+
   @commands %{
     "start" => "Interactive shell for starting chains",
     "exit" => "Exit from ex_testchain",
     "help" => "Prints this help message",
     "mine_start" => "Start mining for chain ID",
     "mine_stop" => "Stop mining for chain ID",
-    "make_snapshot" => "Make snaphot for chain"
+    "make_snapshot" => "Make snaphot for chain",
+    "use" => "Start interactive shell for specific chain ID"
   }
 
   @switches [
@@ -81,61 +84,68 @@ defmodule Cli.Main do
     |> String.downcase()
     |> String.split(" ")
     |> execute_command
+
+    # note to stop execution you have to call `System.halt/0`
+    receive_command()
   end
 
-  defp execute_command(["exit"]), do: IO.puts("\nExiting...")
-  defp execute_command(["quit"]), do: IO.puts("\nQuiting...")
+  defp execute_command(["exit"]) do
+    IO.puts("\nExiting...")
+    System.halt()
+  end
+
+  defp execute_command(["quit"]) do
+    IO.puts("\nQuiting...")
+    System.halt()
+  end
 
   defp execute_command(["start"]) do
     Cli.Chain.start_interactive()
-    receive_command()
   end
 
   defp execute_command(["help"]) do
     print_interactive_help_message()
-    receive_command()
+  end
+
+  defp execute_command(["use"]) do
+    Interactive.start("")
+  end
+
+  defp execute_command(["use", id]) do
+    Interactive.start(id)
   end
 
   defp execute_command(["mine_start"]) do
     Cli.Chain.mine_start("")
-    receive_command()
   end
 
   defp execute_command(["mine_start", id]) do
     Cli.Chain.mine_start(id)
-    receive_command()
   end
 
   defp execute_command(["mine_stop"]) do
     Cli.Chain.mine_start("")
-    receive_command()
   end
 
   defp execute_command(["mine_stop", id]) do
     Cli.Chain.mine_stop(id)
-    receive_command()
   end
 
   defp execute_command(["take_snapshot"]) do
     Cli.Chain.take_snapshot("", "")
-    receive_command()
   end
 
   defp execute_command(["take_snapshot", id]) do
     Cli.Chain.take_snapshot(id, "")
-    receive_command()
   end
 
   defp execute_command(["take_snapshot", id, path]) do
     Cli.Chain.take_snapshot(id, path)
-    receive_command()
   end
 
   defp execute_command(_unknown) do
     IO.puts("\nInvalid command. I don't know what to do.")
     print_interactive_help_message()
-
-    receive_command()
   end
 
   defp print_help_message do

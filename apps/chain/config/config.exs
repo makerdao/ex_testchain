@@ -13,5 +13,5 @@ config :porcelain, driver: Porcelain.Driver.Basic
 # Amount of time in ms process allowed to perform "blocking" work before supervisor will terminate it
 config :chain, kill_timeout: 60_000
 
-config :logger, level: :info
+# config :logger, level: :info
 
