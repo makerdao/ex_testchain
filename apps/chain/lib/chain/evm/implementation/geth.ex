@@ -97,9 +97,11 @@ defmodule Chain.EVM.Implementation.Geth do
   @impl Chain.EVM
   def take_snapshot(
         path_to,
-        %{id: id, config: %{db_path: db_path}, mining: mining} = state
+        %{id: id, config: config, mining: mining, accounts: accounts} = state
       ) do
     Logger.debug("#{id}: Making snapshot")
+
+    db_path = Map.get(config, :db_path)
 
     unless File.dir?(path_to) do
       :ok = File.mkdir_p!(path_to)
@@ -110,16 +112,18 @@ defmodule Chain.EVM.Implementation.Geth do
       stop_mine(state)
     end
 
+    Logger.debug("#{id} Stopping chain before snapshot")
+    {:ok, _} = stop(state)
+
     {:ok, _} = File.cp_r(db_path, path_to)
     Logger.debug("#{id}: Snapshot made to #{path_to}")
 
-    if mining do
-      Logger.debug("#{id}: Starting mining after taking snapshot")
-      start_mine(state)
-    end
+    port = start_node(config, accounts)
+    Logger.debug("#{id} Starting chain after making a snapshot")
 
+    wait_started(state)
     # Returning spanshot details
-    {:reply, {:ok, path_to}, state}
+    {:reply, {:ok, path_to}, %{state | port: port, mining: Map.get(config, :automine, false)}}
   end
 
   @impl Chain.EVM
@@ -306,5 +310,23 @@ defmodule Chain.EVM.Implementation.Geth do
   defp send_command(port, command) do
     Porcelain.Process.send_input(port, command <> "\n")
     :ok
+  end
+
+  # waiting for 30 secs geth to start if not started - raising error
+  defp wait_started(state, times \\ 0)
+
+  defp wait_started(%{id: id}, times) when times >= 150,
+    do: raise("#{id} Timeout waiting geth to start...")
+
+  defp wait_started(%{config: %{http_port: http_port}} = state, times) do
+    case exec_command(http_port, "eth_coinbase") do
+      {:ok, _} ->
+        true
+
+      _ ->
+        # Waiting
+        :timer.sleep(200)
+        wait_started(state, times + 1)
+    end
   end
 end
