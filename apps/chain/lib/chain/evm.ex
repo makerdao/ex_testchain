@@ -13,7 +13,11 @@ defmodule Chain.EVM do
   @typedoc """
   Default evm action reply message
   """
-  @type action_reply :: :ok | {:ok, state :: any()} | {:error, term()}
+  @type action_reply ::
+          :ok
+          | {:ok, state :: any()}
+          | {:reply, reply :: term(), state :: any()}
+          | {:error, term()}
 
   @doc """
   This callback is called on starting evm instance. Here EVM should be started and validated RPC.
@@ -56,8 +60,27 @@ defmodule Chain.EVM do
   @doc """
   Callback will be invoked on take snapshot command. Chain have to perform snapshot operation
   and store chain data to given `path_to`.
+
+  This function have to return `{:reply, result :: any(), state :: any()}` tuple. 
+  Result will be returned to caller using `GenServer.handle_call/3` callback.
+
+  Response example:
+  In case of success function have to return: `{:reply, {:ok, path_od_id}, state}`
+  In case of error: `{:reply, {:error, :not_implemented}, state`
   """
   @callback take_snapshot(path_to :: binary, state :: any()) :: action_reply()
+
+  @doc """
+  Callback will be invoked on revert snapshot command.
+  Chain have to revert snapshot from given path (or id for `ganache`)
+
+  This function have to return `{:reply, result :: any(), state :: any()}` tuple. 
+  Result will be returned to caller using `GenServer.handle_call/3` callback.
+
+  If `path_or_id` snapshot does not exist `{:reply, {:error, term()}, state}` should be returned
+  In case of success - `{:reply, :ok, state}` should be returned
+  """
+  @callback revert_snapshot(path_or_id :: binary, state :: any()) :: action_reply()
 
   @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
@@ -166,6 +189,32 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_call(
+            {:take_snapshot, path_to},
+            _from,
+            %State{id: id, internal_state: internal_state} = state
+          ) do
+        Logger.debug("#{id}: Taking chain snapshot to #{path_to}")
+
+        path_to
+        |> take_snapshot(internal_state)
+        |> handle_action(state)
+      end
+
+      @doc false
+      def handle_call(
+            {:revert_snapshot, path_or_id},
+            _from,
+            %State{id: id, internal_state: internal_state} = state
+          ) do
+        Logger.debug("#{id}: Reverting chain snapshot from #{path_or_id}")
+
+        path_or_id
+        |> revert_snapshot(internal_state)
+        |> handle_action(state)
+      end
+
+      @doc false
       def handle_cast(:stop, %State{id: id, internal_state: internal_state} = state) do
         case stop(internal_state) do
           {:ok, new_internal_state} ->
@@ -193,17 +242,6 @@ defmodule Chain.EVM do
 
         internal_state
         |> stop_mine()
-        |> handle_action(state)
-      end
-
-      def handle_cast(
-            {:take_snapshot, path_to},
-            %State{id: id, internal_state: internal_state} = state
-          ) do
-        Logger.debug("#{id}: Taking chain snapshot to #{path_to}")
-
-        path_to
-        |> take_snapshot(internal_state)
         |> handle_action(state)
       end
 
@@ -261,6 +299,18 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def version(), do: "x.x.x"
 
+      @impl Chain.EVM
+      def take_snapshot(path_to, %State{id: id} = state) do
+        Logger.warn("#{id} take_snapshot not implemented")
+        {:reply, {:error, :not_implemented}, state}
+      end
+
+      @impl Chain.EVM
+      def revert_snapshot(path_or_id, %State{id: id} = state) do
+        Logger.warn("#{id} revert_snapshot not implemented")
+        {:reply, :ok, state}
+      end
+
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
         case reply do
@@ -269,6 +319,9 @@ defmodule Chain.EVM do
 
           {:ok, new_internal_state} ->
             {:noreply, %State{state | internal_state: new_internal_state}}
+
+          {:reply, reply, new_internal_state} ->
+            {:reply, reply, %State{state | internal_state: new_internal_state}}
 
           {:error, err} ->
             Logger.error("#{id}: action failed with error: #{inspect(err)}")
@@ -281,7 +334,12 @@ defmodule Chain.EVM do
       end
 
       # Allow to override functions
-      defoverridable handle_started: 2, started?: 2, handle_msg: 2, version: 0
+      defoverridable handle_started: 2,
+                     started?: 2,
+                     handle_msg: 2,
+                     version: 0,
+                     take_snapshot: 2,
+                     revert_snapshot: 2
     end
   end
 

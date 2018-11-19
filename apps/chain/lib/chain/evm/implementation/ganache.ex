@@ -47,30 +47,40 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def take_snapshot(
-        path_to,
-        %{id: id, config: %{db_path: db_path}, mining: mining} = state
+        _,
+        %{id: id, config: %{http_port: http_port}, mining: mining} = state
       ) do
     Logger.debug("#{id}: Making snapshot")
-
-    unless File.dir?(path_to) do
-      :ok = File.mkdir_p!(path_to)
-    end
 
     if mining do
       Logger.debug("#{id}: Stopping mining before taking snapshot")
       stop_mine(state)
     end
 
-    {:ok, _} = File.cp_r(db_path, path_to)
-    Logger.debug("#{id}: Snapshot made to #{path_to}")
+    {:ok, snapshot_id} = exec_command(http_port, "evm_snapshot")
+    Logger.debug("#{id} Snapshot made with id #{snapshot_id}")
 
     if mining do
       Logger.debug("#{id}: Starting mining after taking snapshot")
       start_mine(state)
     end
 
-    :ok
+    {:reply, {:ok, snapshot_id}, state}
   end
+
+  @impl Chain.EVM
+  def revert_snapshot(
+        <<"0x", _::binary>> = snapshot,
+        %{id: id, config: %{http_port: http_port}} = state
+      ) do
+    Logger.debug("#{id} Reverting snapshot #{snapshot}")
+
+    {:ok, true} = exec_command(http_port, "evm_revert", snapshot)
+    Logger.debug("#{id} Snapshot #{snapshot} reverted")
+    {:reply, {:ok, snapshot}, state}
+  end
+
+  def revert_snapshot(_, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
 
   @impl Chain.EVM
   def terminate(%{port: port, id: id} = state) do

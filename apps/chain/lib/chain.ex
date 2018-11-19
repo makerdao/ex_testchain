@@ -6,6 +6,9 @@ defmodule Chain do
   alias Chain.EVM.Implementation.{Geth, Ganache}
   alias Chain.EVM.Config
 
+  # get timeout for call requests
+  @timeout Application.get_env(:chain, :kill_timeout)
+
   @typedoc """
   Chain EVM type. 
 
@@ -80,10 +83,23 @@ defmodule Chain do
   @doc """
   Generates new chain snapshot and places it into given path
   If path does not exist - system will try to create this path
+
+  If EVM does not need path (like ganache with it's internal snapshots)
+  You could omit it.
+
+  Function will return path_to_snapshot or generated id
   """
-  @spec take_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
-  def take_snapshot(id, path_to),
-    do: GenServer.cast(get_pid!(id), {:take_snapshot, path_to})
+  @spec take_snapshot(Chain.evm_id(), binary) :: {:ok, binary} | {:error, term()}
+  def take_snapshot(id, path_to \\ ""),
+    do: GenServer.call(get_pid!(id), {:take_snapshot, path_to}, @timeout)
+
+  @doc """
+  Revert previously generated snapshot.
+  For `ganache` chain you could provide `id` for others - path to snapshot
+  """
+  @spec revert_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
+  def revert_snapshot(id, path_or_id),
+    do: GenServer.call(get_pid!(id), {:revert_snapshot, path_or_id}, @timeout)
 
   @doc """
   Load list of evms version used in app

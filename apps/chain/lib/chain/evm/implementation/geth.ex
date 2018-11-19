@@ -118,7 +118,8 @@ defmodule Chain.EVM.Implementation.Geth do
       start_mine(state)
     end
 
-    :ok
+    # Returning spanshot details
+    {:reply, {:ok, path_to}, state}
   end
 
   @impl Chain.EVM
