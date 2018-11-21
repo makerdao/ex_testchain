@@ -6,8 +6,8 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   alias Chain.EVM.Config
 
-  @ganache_cli Path.absname("../../priv/presets/ganache/node_modules/.bin/ganache-cli")
-  @wrapper_file Path.absname("../../wrapper.sh")
+  @ganache_cli "priv/presets/ganache/node_modules/.bin/ganache-cli"
+  @wrapper_file "priv/presets/ganache/wrapper.sh"
 
   @impl Chain.EVM
   def start(%Config{db_path: ""}), do: {:error, "Wrong db_path. Please define it."}

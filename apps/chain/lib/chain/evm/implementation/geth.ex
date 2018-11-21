@@ -9,7 +9,7 @@ defmodule Chain.EVM.Implementation.Geth do
 
   require Logger
 
-  @password_file Path.absname("../../priv/presets/geth/account_password")
+  @password_file "priv/presets/geth/account_password"
 
   @impl Chain.EVM
   def start(%Config{db_path: ""}), do: {:error, "Wrong db_path. Please define it."}

@@ -24,7 +24,11 @@ defmodule Cli.MixProject do
   end
 
   defp escript do
-    [main_module: Cli.Main]
+    [
+      main_module: Cli.Main,
+      name: "ex_testchain",
+      path: "../../bin/ex_testchain"
+    ]
   end
 
   # Run "mix help deps" to learn about dependencies.
