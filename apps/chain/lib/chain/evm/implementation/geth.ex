@@ -45,7 +45,7 @@ defmodule Chain.EVM.Implementation.Geth do
     end
 
     Logger.debug("#{id}: starting port with geth node")
-    port = start_node(config, accounts)
+    %{err: nil} = port = start_node(config, accounts)
 
     {:ok, %{port: port, id: id, config: config, accounts: accounts, mining: false}}
   end
@@ -301,6 +301,7 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   # get first created account. it will be coinbase
+  defp get_account([]), do: ""
   defp get_account([{account, _} | _]), do: account
   defp get_account([account | _]) when is_binary(account), do: account
 
