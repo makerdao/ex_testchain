@@ -67,6 +67,8 @@ defmodule Chain.EVM do
   Response example:
   In case of success function have to return: `{:reply, {:ok, path_od_id}, state}`
   In case of error: `{:reply, {:error, :not_implemented}, state`
+
+  If system tries to make a snapshot to directory. Make sure it's empty !
   """
   @callback take_snapshot(path_to :: binary, state :: any()) :: action_reply()
 

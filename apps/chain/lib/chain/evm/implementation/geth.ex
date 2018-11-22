@@ -20,8 +20,18 @@ defmodule Chain.EVM.Implementation.Geth do
       :ok = File.mkdir_p!(db_path)
     end
 
-    Logger.debug("#{id}: Creating accounts")
-    accounts = create_accounts(Map.get(config, :accounts), db_path)
+    # We have to create accounts only if we don't have any already
+    accounts =
+      case File.ls(db_path) do
+        {:ok, []} ->
+          Logger.debug("#{id}: Creating accounts")
+          create_accounts(Map.get(config, :accounts), db_path)
+
+        _ ->
+          Logger.warn("#{id} Path #{db_path} is not empty. New accounts would not be created.")
+          []
+      end
+
     Logger.debug("#{id}: Accounts created: #{inspect(accounts)}")
 
     unless File.exists?(db_path <> "/genesis.json") do
@@ -97,7 +107,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @impl Chain.EVM
   def take_snapshot(
         path_to,
-        %{id: id, config: config, mining: mining, accounts: accounts} = state
+        %{id: id, config: config, accounts: accounts} = state
       ) do
     Logger.debug("#{id}: Making snapshot")
 
@@ -107,23 +117,56 @@ defmodule Chain.EVM.Implementation.Geth do
       :ok = File.mkdir_p!(path_to)
     end
 
-    if mining do
-      Logger.debug("#{id}: Stopping mining before taking snapshot")
-      stop_mine(state)
+    # Check if folder is empty
+    case File.ls(path_to) do
+      {:ok, []} ->
+        Logger.debug("#{id} Stopping chain before snapshot")
+        {:ok, _} = stop(state)
+
+        {:ok, _} = File.cp_r(db_path, path_to)
+        Logger.debug("#{id}: Snapshot made to #{path_to}")
+
+        %{err: nil} = port = start_node(config, accounts)
+        Logger.debug("#{id} Starting chain after making a snapshot")
+
+        :ok = wait_started(state)
+        # Returning spanshot details
+        {:reply, {:ok, path_to}, %{state | port: port, mining: Map.get(config, :automine, false)}}
+
+      _ ->
+        {:reply, {:error, "#{path_to} is not empty"}, state}
     end
+  end
 
-    Logger.debug("#{id} Stopping chain before snapshot")
-    {:ok, _} = stop(state)
+  @impl Chain.EVM
+  def revert_snapshot(path_from, %{id: id, config: config, accounts: accounts} = state) do
+    Logger.debug("#{id} restoring snapshot from #{path_from}")
 
-    {:ok, _} = File.cp_r(db_path, path_to)
-    Logger.debug("#{id}: Snapshot made to #{path_to}")
+    db_path = Map.get(config, :db_path)
 
-    port = start_node(config, accounts)
-    Logger.debug("#{id} Starting chain after making a snapshot")
+    case File.dir?(path_from) do
+      false ->
+        {:reply, {:error, "No such directory #{path_from}"}, state}
 
-    wait_started(state)
-    # Returning spanshot details
-    {:reply, {:ok, path_to}, %{state | port: port, mining: Map.get(config, :automine, false)}}
+      true ->
+        Logger.debug("#{id} Stopping chain before restoring snapshot")
+        {:ok, _} = stop(state)
+
+        if File.dir?(db_path) do
+          {:ok, _} = File.rm_rf(db_path)
+          :ok = File.mkdir(db_path)
+        end
+
+        {:ok, _} = File.cp_r(path_from, db_path)
+
+        %{err: nil} = port = start_node(config, accounts)
+        Logger.debug("#{id} Starting chain after restoring a snapshot")
+
+        :ok = wait_started(state)
+        Logger.debug("#{id} Chain restored snapshot from #{path_from}")
+        # Returning spanshot details
+        {:reply, :ok, %{state | port: port}}
+    end
   end
 
   @impl Chain.EVM

@@ -64,6 +64,17 @@ defmodule Cli.Chain.Interactive do
     Cli.Chain.take_snapshot(id, path)
   end
 
+  defp execute_command(["revert_snapshot"], _id) do
+    """
+    #{IO.ANSI.light_red()}Usage `revert_snapshot /path/to/snapshot`#{IO.ANSI.reset()}
+    """
+    |> IO.puts()
+  end
+
+  defp execute_command(["revert_snapshot", path], id) do
+    Cli.Chain.revert_snapshot(id, path)
+  end
+
   defp execute_command(command, _id) do
     IO.puts("Unknown command passed #{List.first(command)}")
   end

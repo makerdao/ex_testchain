@@ -183,16 +183,57 @@ defmodule Cli.Chain do
 
   def take_snapshot(id, path) do
     try do
-      {:ok, snapshot} =
-        id
-        |> Chain.take_snapshot(path)
+      {:ok, snapshot} = Chain.take_snapshot(id, path)
 
       "#{IO.ANSI.light_yellow()}Snapshot was taken to #{snapshot} for chain #{id}#{
         IO.ANSI.reset()
       }"
       |> IO.puts()
     rescue
-      _ ->
+      err ->
+        IO.inspect(err)
+        print_no_chain()
+    end
+  end
+
+  @doc """
+  Restores snapshot for chain
+  Usage: 
+
+      iex> Cli.Chain.revert_snapshot("4942249475330991771", "/path/to/snapshot")
+
+  Will print error in case of something wrong
+  """
+  @spec revert_snapshot(binary, binary) :: none()
+  def revert_snapshot("", _) do
+    """
+    #{IO.ANSI.light_red()}Usage `revert_snapshot your_chain_id /path/to/snapshot` #{
+      IO.ANSI.reset()
+    }
+    """
+    |> IO.puts()
+  end
+
+  def revert_snapshot(_, "") do
+    """
+    #{IO.ANSI.light_red()}Usage `revert_snapshot your_chain_id /path/to/snapshot` #{
+      IO.ANSI.reset()
+    }
+    """
+    |> IO.puts()
+  end
+
+  def revert_snapshot(id, path) do
+    try do
+      :ok = Chain.revert_snapshot(id, path)
+
+      "#{IO.ANSI.light_yellow()}Snapshot was restored from #{path} for chain #{id}#{
+        IO.ANSI.reset()
+      }"
+      |> IO.puts()
+    rescue
+      err ->
+        IO.inspect(err)
         print_no_chain()
     end
   end

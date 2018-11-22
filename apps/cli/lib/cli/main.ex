@@ -7,7 +7,8 @@ defmodule Cli.Main do
     "help" => "Prints this help message",
     "mine_start" => "Start mining for chain ID",
     "mine_stop" => "Stop mining for chain ID",
-    "make_snapshot" => "Make snaphot for chain",
+    "take_snapshot" => "Make snaphot for chain",
+    "revert_snapshot" => "Revert snapshot for chain",
     "use" => "Start interactive shell for specific chain ID"
   }
 

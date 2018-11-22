@@ -77,7 +77,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
     {:ok, true} = exec_command(http_port, "evm_revert", snapshot)
     Logger.debug("#{id} Snapshot #{snapshot} reverted")
-    {:reply, {:ok, snapshot}, state}
+    {:reply, :ok, state}
   end
 
   def revert_snapshot(_, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
