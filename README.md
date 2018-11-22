@@ -52,6 +52,14 @@ Running binary:
 ./bin/ex_testchain --help
 ```
 
+## Installing globaly.
+After building binary you can install in systemwise using command:
+```bash
+mix escript.install ./bin/ex_testchain
+```
+
+And it will become accesible from anywhere you need.
+
 ## ExTestchain CLI
 
 Without any option CLI will start in interactive mode and will print help there.
