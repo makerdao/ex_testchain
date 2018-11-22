@@ -167,7 +167,7 @@ defmodule Cli.Main do
     To start new chain use `-s --datadir=/some/dir` options.
     Example: 
 
-      #{Cli.selected("./cli -s --datadir=/tmp/test")}
+      #{Cli.selected("./bin/ex_testchain -s --datadir=/tmp/test")}
 
     Other start options:
 

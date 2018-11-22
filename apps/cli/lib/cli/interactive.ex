@@ -1,6 +1,19 @@
 defmodule Cli.Chain.Interactive do
   @help """
-  This will be help
+  ExTestchain Interactive mode.
+  This mode is designed to control selected chain.
+
+  List of available commands:
+
+   - h|help - Prints this help message
+   - exit|stop - Stop chain and quits from interactive mode
+   - mine_start - Start mining process
+   - mine_stop - Stop mining process. (Ignores if mining not started)
+   - take_snapshot /path/to/dir - Makes snapshot of chain into passed directory (dir ignores for ganache)
+   - revert_snapshot /path/to/snapshot - Revert chain to selected snapshot (for ganache it should be snapshot number 0x1...)
+
+  Thank you for choosing MakersDAO ExTestchain ;)
+  This is MVP so something might not work properly.
   """
 
   @doc """
