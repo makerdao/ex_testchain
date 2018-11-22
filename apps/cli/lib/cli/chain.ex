@@ -87,7 +87,7 @@ defmodule Cli.Chain do
           print_result(process)
 
         :timeout ->
-          IO.puts("Seems something went wrong...")
+          IO.puts("Chain didn't start in #{@timeout} seconds. Please check logs...")
 
         _ ->
           Cli.error("Something wrong...")
