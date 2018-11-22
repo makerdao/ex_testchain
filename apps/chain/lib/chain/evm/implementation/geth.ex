@@ -301,9 +301,9 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   # get first created account. it will be coinbase
-  defp get_account([]), do: ""
-  defp get_account([{account, _} | _]), do: account
-  defp get_account([account | _]) when is_binary(account), do: account
+  defp get_etherbase([]), do: ""
+  defp get_etherbase([{account, _} | _]), do: "--etherbase=\"0x#{account}\""
+  defp get_etherbase([account | _]) when is_binary(account), do: "--etherbase=\"0x#{account}\""
 
   # Get path for logging
   defp get_output(""), do: "2>> /dev/null"
@@ -340,7 +340,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--wsorigins=\"*\"",
       # "--mine",
       # "--minerthreads=1",
-      "--etherbase=\"0x#{get_account(accounts)}\"",
+      get_etherbase(accounts),
       "console",
       get_output(output)
     ]
