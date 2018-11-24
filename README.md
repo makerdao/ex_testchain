@@ -14,6 +14,11 @@ As for now project requires Elixir installed + chain you want to work with.
 
 [**Installing Elixir**](https://elixir-lang.org/install.html)
 
+For NixOS you will also need to install Erlang R21 to make `escript` available
+```bash
+$ nix-env -iA nixos.erlangR21
+```
+
 ### Geth
 ExTestchain uses `geth` installed in your system.
 
