@@ -16,6 +16,7 @@ defmodule Cli.Main do
     help: :boolean,
     version: :boolean,
     start: :boolean,
+    disablelog: :boolean,
     type: :string,
     datadir: :string,
     accounts: :integer,
@@ -57,6 +58,15 @@ defmodule Cli.Main do
   end
 
   def process_args(%{start: true} = config) do
+    out =
+      case Map.get(config, :disablelog) do
+        true ->
+          false
+
+        _ ->
+          Map.get(config, :out, "")
+      end
+
     {:ok, id} =
       %Chain.EVM.Config{
         type: Map.get(config, :type, "geth") |> String.to_atom(),
@@ -66,7 +76,7 @@ defmodule Cli.Main do
         network_id: Map.get(config, :networkid, 999),
         db_path: Map.get(config, :datadir, ""),
         accounts: Map.get(config, :accounts, 1),
-        output: Map.get(config, :out, ""),
+        output: out,
         automine: Map.get(config, :automine, false),
         notify_pid: self()
       }
@@ -179,6 +189,7 @@ defmodule Cli.Main do
       --out           File where all chain logs will be streamed
       --networkid     Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby) (default: 999)
       --automine      Enable mining (default: disabled)
+      --disablelog    Will disable output chain logging. Note it weill override `--out` key
 
     After starting new chain system will enter interactive mode.
     Where you can type #{Cli.selected("help")} for getting help.

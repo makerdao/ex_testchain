@@ -136,7 +136,8 @@ defmodule Chain.EVM do
       def handle_continue(:start_chain, %State{id: id, config: config} = state) do
         case start(config) do
           {:ok, internal_state} ->
-            Logger.debug("#{id}: Started successfully !")
+            Logger.debug("#{id}: Chain init started successfully ! Waiting for JSON-RPC.")
+
             # Schedule started check
             check_started(self())
             {:noreply, %State{state | internal_state: internal_state}}
@@ -183,6 +184,20 @@ defmodule Chain.EVM do
             check_started(self(), retries + 1)
             {:noreply, state}
         end
+      end
+
+      def handle_info(
+            {_, :result, %Porcelain.Result{status: 1}},
+            %State{id: id, config: config} = state
+          ) do
+        Logger.error("#{id} Chain failure. Check logs: #{Map.get(config, :output, "")}")
+
+        if pid = Map.get(config, :notify_pid) do
+          Logger.debug("#{id} Sending notification to #{inspect(pid)}")
+          send(pid, {:error, "#{id} failed to start chain. Got status code 1"})
+        end
+
+        {:stop, {:shutdown, :failed_to_start}, state}
       end
 
       def handle_info(msg, %State{id: id} = state) do

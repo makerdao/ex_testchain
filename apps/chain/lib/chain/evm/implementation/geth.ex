@@ -334,7 +334,7 @@ defmodule Chain.EVM.Implementation.Geth do
       # "--mine",
       # "--minerthreads=1",
       get_etherbase(accounts),
-      "--unlock primary",
+      # "--unlock primary",
       "console",
       get_output(output)
     ]

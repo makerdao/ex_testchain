@@ -171,11 +171,13 @@ defmodule Chain do
   end
 
   # Expands path like `~/something` to normal path
-  defp fix_path(%{db_path: db_path, output: ""} = config) do
-    %Config{config | db_path: Path.expand(db_path)}
-  end
+  # This function is handler for `output: nil`
+  defp fix_path(%{db_path: db_path, output: nil} = config),
+    do: %Config{config | db_path: Path.expand(db_path)}
 
-  defp fix_path(%{db_path: db_path, output: output} = config) do
-    %Config{config | db_path: Path.expand(db_path), output: Path.expand(output)}
-  end
+  defp fix_path(%{db_path: db_path, output: ""} = config),
+    do: fix_path(%Config{config | output: "#{db_path}/out.log"})
+
+  defp fix_path(%{db_path: db_path, output: output} = config),
+    do: %Config{config | db_path: Path.expand(db_path), output: Path.expand(output)}
 end

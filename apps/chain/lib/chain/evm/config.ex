@@ -12,6 +12,7 @@ defmodule Chain.EVM.Config do
   - `automine` - Should evm start with instamining feature ? (Default: `false`)
   - `accounts` - How many accoutn should be created on start (Default: `1`)
   - `notify_pid` - Internal process id that will be notified on some chain events
+  - `output` - Path to logs file. If empty string passing logs will be stored into `db_path <> /out.log`. To disable logging pass `nil`
 
   """
   @type t :: %__MODULE__{

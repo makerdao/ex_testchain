@@ -28,9 +28,15 @@ defmodule Cli.Chain do
         "8545"
       end
 
+    need_output =
+      "Do you want to store logs [#{Cli.selected("y")}|n]: "
+      |> Cli.promt("y")
+
     output =
-      "Path where to store EVM logs [#{Cli.selected("empty")}]: "
-      |> Cli.promt()
+      unless "n" == need_output do
+        "Path where to store EVM logs [#{Cli.selected("#{db_path}/out.log")}]: "
+        |> Cli.promt("")
+      end
 
     automine =
       "Do you need automining [y|#{Cli.selected("n")}]: "
@@ -86,11 +92,18 @@ defmodule Cli.Chain do
         %Chain.EVM.Process{} = process ->
           print_result(process)
 
+        {:error, err} ->
+          "Chain failed to start with error: #{inspect(err)}"
+          |> Cli.error()
+          |> IO.puts()
+
         :timeout ->
           IO.puts("Chain didn't start in #{@timeout} seconds. Please check logs...")
 
         _ ->
-          Cli.error("Something wrong...")
+          "Something wrong..."
+          |> Cli.error()
+          |> IO.puts()
       end
     end)
 
