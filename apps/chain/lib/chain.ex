@@ -6,6 +6,8 @@ defmodule Chain do
   alias Chain.EVM.Implementation.{Geth, Ganache}
   alias Chain.EVM.Config
 
+  require Logger
+
   # get timeout for call requests
   @timeout Application.get_env(:chain, :kill_timeout)
 
@@ -143,6 +145,8 @@ defmodule Chain do
   end
 
   # Try to start evm using given module/config
+  defp start_evm(_, %Config{db_path: ""}), do: {:error, "Wrong db_path... Please define it !"}
+
   defp start_evm(module, %Config{id: nil} = config) do
     id = unique_id()
 
@@ -153,8 +157,25 @@ defmodule Chain do
 
   # Starts new EVM genserver inser default supervisor
   defp start_evm_process(module, %Config{id: id} = config) do
+    config = fix_path(config)
+    db_path = Map.get(config, :db_path)
+
+    unless File.exists?(db_path) do
+      Logger.debug("#{id}: #{db_path} not exist, creating...")
+      :ok = File.mkdir_p!(db_path)
+    end
+
     {:ok, _pid} = Chain.EVM.Supervisor.start_evm(module, config)
 
     {:ok, id}
+  end
+
+  # Expands path like `~/something` to normal path
+  defp fix_path(%{db_path: db_path, output: ""} = config) do
+    %Config{config | db_path: Path.expand(db_path)}
+  end
+
+  defp fix_path(%{db_path: db_path, output: output} = config) do
+    %Config{config | db_path: Path.expand(db_path), output: Path.expand(output)}
   end
 end

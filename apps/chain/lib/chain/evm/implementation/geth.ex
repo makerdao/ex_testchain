@@ -12,14 +12,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @password_file Path.absname("../../priv/presets/geth/account_password")
 
   @impl Chain.EVM
-  def start(%Config{db_path: ""}), do: {:error, "Wrong db_path. Please define it."}
-
   def start(%Config{id: id, db_path: db_path} = config) do
-    unless File.exists?(db_path) do
-      Logger.debug("#{id}: #{db_path} not exist, creating...")
-      :ok = File.mkdir_p!(db_path)
-    end
-
     # We have to create accounts only if we don't have any already
     accounts =
       case File.ls(db_path) do
@@ -341,6 +334,7 @@ defmodule Chain.EVM.Implementation.Geth do
       # "--mine",
       # "--minerthreads=1",
       get_etherbase(accounts),
+      "--unlock primary",
       "console",
       get_output(output)
     ]

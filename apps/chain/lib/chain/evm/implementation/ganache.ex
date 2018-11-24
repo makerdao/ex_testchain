@@ -10,16 +10,9 @@ defmodule Chain.EVM.Implementation.Ganache do
   @wrapper_file Path.absname("../../priv/presets/ganache/wrapper.sh")
 
   @impl Chain.EVM
-  def start(%Config{db_path: ""}), do: {:error, "Wrong db_path. Please define it."}
-
-  def start(%Config{id: id, db_path: db_path} = config) do
+  def start(%Config{id: id} = config) do
     unless File.exists?(@ganache_cli) do
       raise "No `ganache-cli` installed. Please run `cd priv/presets/ganache && npm install`"
-    end
-
-    unless File.dir?(db_path) do
-      Logger.debug("#{id}: #{db_path} not exist, creating...")
-      :ok = File.mkdir_p!(db_path)
     end
 
     Logger.debug("#{id}: Starting ganache-cli")
