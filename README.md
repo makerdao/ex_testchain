@@ -8,6 +8,11 @@ Right now it implements this features:
  - Start/Stop mining process
  - Take/revert snapshot
 
+## Requirements
+
+ - Elixir 1.7+
+ - Erlang 21+
+
 ## Installation
 
 As for now project requires Elixir installed + chain you want to work with.
