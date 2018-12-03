@@ -3,6 +3,11 @@ defmodule Cli do
   Documentation for Cli.
   """
 
+  @doc """
+  Promt user for some input with default value.
+  Default version will be returned if user didn't enter enything except of empty string
+  """
+  @spec promt(binary, binary) :: binary
   def promt(description, default \\ "") do
     description
     |> IO.gets()
@@ -10,6 +15,11 @@ defmodule Cli do
     |> default(default)
   end
 
+  @doc """
+  Promts user for some input. 
+  If user didn't entered anything promt will show again till any input
+  """
+  @spec promt!(binary) :: binary
   def promt!(description) do
     case promt(description) do
       "" ->
@@ -20,9 +30,10 @@ defmodule Cli do
     end
   end
 
-  def default("", default), do: default
-  def default(str, _), do: str
-
+  @doc """
+  Draws selected colored text
+  """
+  @spec selected(binary) :: binary
   def selected(text \\ ""), do: "#{IO.ANSI.underline()}#{IO.ANSI.cyan()}#{text}#{IO.ANSI.reset()}"
 
   @doc """
@@ -42,4 +53,7 @@ defmodule Cli do
   def comment(text) do
     IO.ANSI.light_black() <> text <> IO.ANSI.reset()
   end
+
+  defp default("", default), do: default
+  defp default(str, _), do: str
 end

@@ -22,10 +22,11 @@ defmodule Chain.EVM.Implementation.Geth do
 
         _ ->
           Logger.warn("#{id} Path #{db_path} is not empty. New accounts would not be created.")
-          []
+          {:ok, list} = load_existing_accounts(db_path)
+          list
       end
 
-    Logger.debug("#{id}: Accounts created: #{inspect(accounts)}")
+    Logger.debug("#{id}: Accounts: #{inspect(accounts)}")
 
     unless File.exists?(db_path <> "/genesis.json") do
       :ok = write_genesis(config, accounts)
@@ -33,9 +34,12 @@ defmodule Chain.EVM.Implementation.Geth do
     end
 
     # Checking for existing genesis block and init if not found
-    unless File.dir?(db_path <> "/geth") do
-      :ok = init_chain(db_path)
-    end
+    # We switched to --dev with instamining feature so right now 
+    # we don't need to init chain from genesis.json
+
+    # unless File.dir?(db_path <> "/geth") do
+    # :ok = init_chain(db_path)
+    # end
 
     Logger.debug("#{id}: starting port with geth node")
     %{err: nil} = port = start_node(config, accounts)
@@ -298,6 +302,13 @@ defmodule Chain.EVM.Implementation.Geth do
   defp get_etherbase([{account, _} | _]), do: "--etherbase=\"0x#{account}\""
   defp get_etherbase([account | _]) when is_binary(account), do: "--etherbase=\"0x#{account}\""
 
+  # combine list of accounts to unlock `--unlock 0x....,0x.....`
+  defp get_unlock([]), do: ""
+
+  defp get_unlock(list) do
+    "--unlock=\"" <> Enum.join(list, "\",\"") <> "\""
+  end
+
   # Get path for logging
   defp get_output(""), do: "2>> /dev/null"
   defp get_output(path) when is_binary(path), do: "2>> #{path}"
@@ -317,6 +328,7 @@ defmodule Chain.EVM.Implementation.Geth do
        ) do
     [
       executable!(),
+      "--dev",
       "--datadir",
       db_path,
       "--networkid",
@@ -331,14 +343,18 @@ defmodule Chain.EVM.Implementation.Geth do
       "--wsport",
       ws_port |> to_string(),
       "--wsorigins=\"*\"",
+      "--gasprice=\"2000000000\"",
+      "--targetgaslimit=\"9000000000000\"",
       # "--mine",
       # "--minerthreads=1",
+      "--password=#{@password_file}",
       get_etherbase(accounts),
-      # "--unlock primary",
+      get_unlock(accounts),
       "console",
       get_output(output)
     ]
     |> Enum.join(" ")
+    |> IO.inspect()
   end
 
   # Send command to port
@@ -348,6 +364,36 @@ defmodule Chain.EVM.Implementation.Geth do
   defp send_command(port, command) do
     Porcelain.Process.send_input(port, command <> "\n")
     :ok
+  end
+
+  # load list of existing accounts
+  defp load_existing_accounts(db_path) do
+    case Porcelain.shell("#{executable!()} account list --datadir=#{db_path}") do
+      %{err: nil, out: out, status: 0} ->
+        {:ok, parse_existing_accounts(out)}
+
+      _ ->
+        {:error, "failed to load accounts"}
+    end
+  end
+
+  defp parse_existing_accounts(list) do
+    list
+    |> String.split("\n")
+    |> Enum.map(&parse_existing_account_line/1)
+    |> Enum.reject(&("" == &1))
+  end
+
+  defp parse_existing_account_line(""), do: ""
+
+  defp parse_existing_account_line(<<"Account", rest::binary>>) do
+    case Regex.named_captures(~r/\{(?<address>.{40})\}/, rest) do
+      %{"address" => address} ->
+        address
+
+      _ ->
+        ""
+    end
   end
 
   # waiting for 30 secs geth to start if not started - raising error

@@ -7,7 +7,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   Here are set of settings for new genesis:
    - `chain_id` - chain Id (Default: `999`)
    - `difficulty` - calc difficulty (Default: `1`)
-   - `gas_limit` - gas limit for chain (Default: `2_100_000`)
+   - `gas_limit` - gas limit for chain (Default: `6_000_000`)
    - `accounts` - List of accounts
 
   ## Accounts
@@ -26,7 +26,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   """
 
   # Default balance for account
-  @balance "500000"
+  @balance "100000000000000000000"
 
   @type t :: %__MODULE__{
           chain_id: non_neg_integer(),
@@ -35,7 +35,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
           accounts: [binary | {binary, non_neg_integer()}]
         }
 
-  defstruct chain_id: 999, difficulty: 1, gas_limit: 2_100_000, accounts: []
+  defstruct chain_id: 999, difficulty: 1, gas_limit: 6_000_000, accounts: []
 
   @doc """
   Write new `genesis.json` file into provided path.
