@@ -55,20 +55,15 @@ defmodule Chain.EVM.Implementation.Ganache do
       ) do
     Logger.debug("#{id}: Making snapshot")
 
-    if mining do
-      Logger.debug("#{id}: Stopping mining before taking snapshot")
-      stop_mine(state)
+    case exec_command(http_port, "evm_snapshot") do
+      {:ok, snapshot_id} ->
+        Logger.debug("#{id} Snapshot made with id #{snapshot_id}")
+        {:reply, {:ok, snapshot_id}, state}
+
+      _ ->
+        Logger.error("#{id}: Failed to make snapshot")
+        {:reply, {:error, :unknown}, state}
     end
-
-    {:ok, snapshot_id} = exec_command(http_port, "evm_snapshot")
-    Logger.debug("#{id} Snapshot made with id #{snapshot_id}")
-
-    if mining do
-      Logger.debug("#{id}: Starting mining after taking snapshot")
-      start_mine(state)
-    end
-
-    {:reply, {:ok, snapshot_id}, state}
   end
 
   @impl Chain.EVM
@@ -78,9 +73,15 @@ defmodule Chain.EVM.Implementation.Ganache do
       ) do
     Logger.debug("#{id} Reverting snapshot #{snapshot}")
 
-    {:ok, true} = exec_command(http_port, "evm_revert", snapshot)
-    Logger.debug("#{id} Snapshot #{snapshot} reverted")
-    {:reply, :ok, state}
+    case exec_command(http_port, "evm_revert", snapshot) do
+      {:ok, true} ->
+        Logger.debug("#{id} Snapshot #{snapshot} reverted")
+        {:reply, :ok, state}
+
+      _ ->
+        Logger.error("#{id}: Failed to revert snapshot #{snapshot}")
+        {:reply, {:error, :unknown}, state}
+    end
   end
 
   def revert_snapshot(_, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
