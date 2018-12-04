@@ -154,8 +154,6 @@ defmodule Chain.EVM do
             %State{internal_state: internal_state} = state
           ) do
         msg
-        |> String.replace_prefix("/n", "")
-        |> String.replace_prefix(" ", "")
         |> handle_msg(internal_state)
         |> handle_action(state)
       end
@@ -269,9 +267,7 @@ defmodule Chain.EVM do
       end
 
       @impl Chain.EVM
-      def handle_msg(str, %{id: id} = state) do
-        {:ok, state}
-      end
+      def handle_msg(_str, _state), do: :ok
 
       @impl Chain.EVM
       def started?(%{id: id, http_port: http_port}, _) do

@@ -4,7 +4,7 @@ defmodule Chain.Test do
   Will be deleted afterwards
   """
 
-  @base_path "/Users/konstantinzolotarev/Coding/maker/geth/test"
+  @base_path "/tmp/chain"
 
   def config() do
     %Chain.EVM.Config{

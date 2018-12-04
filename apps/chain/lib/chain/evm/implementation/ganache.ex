@@ -15,9 +15,11 @@ defmodule Chain.EVM.Implementation.Ganache do
       raise "No `ganache-cli` installed. Please run `cd priv/presets/ganache && npm install`"
     end
 
+    file = open_log_file(config)
+
     Logger.debug("#{id}: Starting ganache-cli")
     port = start_node(config)
-    {:ok, %{port: port, id: id, config: config, mining: true}}
+    {:ok, %{port: port, id: id, config: config, mining: true, log_file: file}}
   end
 
   @impl Chain.EVM
@@ -36,6 +38,14 @@ defmodule Chain.EVM.Implementation.Ganache do
   def stop_mine(%{config: %Config{http_port: http_port}} = state) do
     {:ok, true} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
+  end
+
+  @impl Chain.EVM
+  def handle_msg(_str, %{log_file: nil}), do: :ok
+
+  def handle_msg(str, %{log_file: file}) do
+    IO.binwrite(file, str)
+    :ok
   end
 
   @impl Chain.EVM
@@ -76,9 +86,15 @@ defmodule Chain.EVM.Implementation.Ganache do
   def revert_snapshot(_, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
 
   @impl Chain.EVM
-  def terminate(%{port: port, id: id} = state) do
-    Logger.info("#{id}: Terminating... #{inspect(state)}")
+  def terminate(%{port: port, id: id, log_file: file}) do
+    Logger.info("#{id}: Terminating...")
     Porcelain.Process.stop(port)
+
+    unless file == nil do
+      Logger.debug("#{id} Closing log file")
+      File.close(file)
+    end
+
     :ok
   end
 
@@ -117,10 +133,11 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   # Get path for logging
-  defp get_output(""), do: "2>/dev/null"
-  defp get_output(path) when is_binary(path), do: "2>#{path}"
+  defp get_output(""), do: "--quiet 2>/dev/null"
+  # We don't need to pipe stream because of we wrapped everything using `wrapper.sh` file
+  defp get_output(path) when is_binary(path), do: "--verbose 2>/dev/null"
   # Ignore in any other case
-  defp get_output(_), do: "2>/dev/null"
+  defp get_output(_), do: "--quiet 2>/dev/null"
 
   # Build command for starting ganache-cli
   defp build_command(%Config{
@@ -131,8 +148,8 @@ defmodule Chain.EVM.Implementation.Ganache do
          output: output
        }) do
     [
-      # Sorry but this **** never works as you expect so I have to wrap it into "killer"
-      # Otherwise after application will be terminated - ganache still wwill be running
+      # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
+      # Otherwise after application will be terminated - ganache still will be running
       @wrapper_file,
       @ganache_cli,
       "--noVMErrorsOnRPCResponse",
@@ -144,4 +161,16 @@ defmodule Chain.EVM.Implementation.Ganache do
     ]
     |> Enum.join(" ")
   end
+
+  # Opens file if it should be opened to store logs from ganache
+  # Function should get `Chain.EVM.Config.t()` as input
+  defp open_log_file(%Config{output: ""}), do: nil
+
+  defp open_log_file(%Config{id: id, output: path}) when is_binary(path) do
+    Logger.debug("#{id}: Opening file #{path} for writing logs")
+    {:ok, file} = File.open(path, [:binary, :append])
+    file
+  end
+
+  defp open_log_file(_), do: nil
 end
