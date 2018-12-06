@@ -89,3 +89,9 @@ $ curl --request POST \
 ```
 It will start ganache chain based on your files.
 **Note:** chain will continue running and your data might be changed !
+
+## Concusion
+
+Most of things like adding ports and starting docker might be wrapped into `Makefile` 
+And start usage might be something like: 
+`make start -p 8545 8546 7545 -v /tmp/ganache:/var/ganache`
