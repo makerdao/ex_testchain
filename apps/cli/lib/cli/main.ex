@@ -111,6 +111,8 @@ defmodule Cli.Main do
     System.halt()
   end
 
+  defp execute_command(["observer"]), do: :observer.start()
+
   defp execute_command(["start"]) do
     Cli.Chain.start_interactive()
   end

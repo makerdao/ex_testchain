@@ -15,6 +15,7 @@ defmodule Chain.EVM do
   """
   @type action_reply ::
           :ok
+          | :ignore
           | {:ok, state :: any()}
           | {:reply, reply :: term(), state :: any()}
           | {:error, term()}
@@ -83,6 +84,21 @@ defmodule Chain.EVM do
   In case of success - `{:reply, :ok, state}` should be returned
   """
   @callback revert_snapshot(path_or_id :: binary, state :: any()) :: action_reply()
+
+  @doc """
+  Callback will be invoked on internal spanshot.
+
+  Some chains like `ganache` has internal snapshoting functionality
+  And this functionality might be used by some tests/scripts. 
+  """
+  @callback take_internal_snapshot(state :: any()) :: action_reply()
+
+  @doc """
+  Callback will be invoked on reverting internal snapshot by it's id. 
+
+  Working for only chains like `ganache` that has internal snapshots functionality
+  """
+  @callback revert_internal_snapshot(id :: binary, state :: any()) :: action_reply()
 
   @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
@@ -230,6 +246,28 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_call(
+            :take_internal_snapshot,
+            _from,
+            %State{internal_state: internal_state} = state
+          ) do
+        internal_state
+        |> take_internal_snapshot()
+        |> handle_action(state)
+      end
+
+      @doc false
+      def handle_call(
+            {:revert_internal_snapshot, snapshot_id},
+            _from,
+            %State{internal_state: internal_state} = state
+          ) do
+        snapshot_id
+        |> revert_internal_snapshot(internal_state)
+        |> handle_action(state)
+      end
+
+      @doc false
       def handle_cast(:stop, %State{id: id, internal_state: internal_state} = state) do
         case stop(internal_state) do
           {:ok, new_internal_state} ->
@@ -324,10 +362,19 @@ defmodule Chain.EVM do
         {:reply, :ok, state}
       end
 
+      @impl Chain.EVM
+      def take_internal_snapshot(state), do: {:reply, {:error, :not_implemented}, state}
+
+      @impl Chain.EVM
+      def revert_internal_snapshot(_id, _state), do: :ignore
+
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
         case reply do
           :ok ->
+            {:noreply, state}
+
+          :ignore ->
             {:noreply, state}
 
           {:ok, new_internal_state} ->
@@ -352,7 +399,9 @@ defmodule Chain.EVM do
                      handle_msg: 2,
                      version: 0,
                      take_snapshot: 2,
-                     revert_snapshot: 2
+                     revert_snapshot: 2,
+                     take_internal_snapshot: 1,
+                     revert_internal_snapshot: 2
     end
   end
 

@@ -18,7 +18,10 @@ defmodule Chain.EVM.Implementation.Ganache do
     file = open_log_file(config)
 
     Logger.debug("#{id}: Starting ganache-cli")
-    port = start_node(config)
+    %{err: nil, pid: pid} = port = start_node(config)
+    Process.link(pid)
+    IO.inspect(self())
+    IO.inspect(pid)
     {:ok, %{port: port, id: id, config: config, mining: true, log_file: file}}
   end
 
@@ -51,7 +54,7 @@ defmodule Chain.EVM.Implementation.Ganache do
   @impl Chain.EVM
   def take_snapshot(
         _,
-        %{id: id, config: %{http_port: http_port}, mining: mining} = state
+        %{id: id, config: %{http_port: http_port}} = state
       ) do
     Logger.debug("#{id}: Making snapshot")
 

@@ -354,7 +354,6 @@ defmodule Chain.EVM.Implementation.Geth do
       get_output(output)
     ]
     |> Enum.join(" ")
-    |> IO.inspect()
   end
 
   # Send command to port
