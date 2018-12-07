@@ -156,6 +156,10 @@ defmodule Chain.EVM do
 
             # Schedule started check
             check_started(self())
+            # Adding chain process to `Chain.Watcher`
+            %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
+            Chain.Watcher.watch(http_port, ws_port, db_path)
+            # Added. finishing
             {:noreply, %State{state | internal_state: internal_state}}
 
           {:error, err} ->

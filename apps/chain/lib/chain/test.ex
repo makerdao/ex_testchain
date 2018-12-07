@@ -6,8 +6,9 @@ defmodule Chain.Test do
 
   @base_path "/tmp/chain"
 
-  def config() do
+  def config(type \\ :ganache) do
     %Chain.EVM.Config{
+      type: type,
       db_path: @base_path,
       output: @base_path <> "/evm.out",
       notify_pid: self()

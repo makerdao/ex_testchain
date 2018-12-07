@@ -13,7 +13,8 @@ defmodule Chain.Application do
     # List all child processes to be supervised
     children = [
       Chain.EVM.Supervisor,
-      {Registry, keys: :unique, name: Chain.EVM.Registry}
+      {Registry, keys: :unique, name: Chain.EVM.Registry},
+      Chain.Watcher
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
