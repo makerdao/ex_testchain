@@ -14,6 +14,10 @@ config :porcelain, driver: Porcelain.Driver.Basic
 config :chain, kill_timeout: 180_000
 
 # Default folder where all chain db's will be created, please use full path
+# Note that chain id will be added as final folder.
+# Example: with `config :chain, base_path: "/tmp/chains"`
+# Final chain path will be 
+# `/tmp/chains/some-id-here`
 config :chain, base_path: "/tmp/chains"
 
 # config :logger, level: :info
