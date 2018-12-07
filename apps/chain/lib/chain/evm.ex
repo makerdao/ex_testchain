@@ -127,10 +127,11 @@ defmodule Chain.EVM do
 
         @type t :: %__MODULE__{
                 id: non_neg_integer(),
+                started: boolean,
                 config: Chain.EVM.Config.t(),
                 internal_state: term()
               }
-        defstruct id: nil, config: nil, internal_state: nil
+        defstruct id: nil, started: false, config: nil, internal_state: nil
       end
 
       @doc false
@@ -190,7 +191,8 @@ defmodule Chain.EVM do
 
             config
             |> handle_started(internal_state)
-            |> handle_action(state)
+            # Marking chain as started
+            |> handle_action(%State{state | started: true})
 
           false ->
             Logger.debug("#{id}: (#{retries}) not started fully yet...")
@@ -204,18 +206,33 @@ defmodule Chain.EVM do
         end
       end
 
+      # Idea about this is:
+      # When Porcelain will spawn an OS process it will handle it's termination.
+      # And on termination we will get message `{<from>, :result, %Porcelain.Result{} | nil}`
+      # So we have to check if our chain is already started (`%State{started: boolean}`)
+      # And if it was started we have to restart chain (internal failure)
+      # But if chain was not yet started - we have to ignore this and just terminate PID
+      @doc false
       def handle_info(
-            {_, :result, %Porcelain.Result{status: 1}},
-            %State{id: id, config: config} = state
+            {_, :result, %Porcelain.Result{status: status}},
+            %State{id: id, started: started, config: config} = state
           ) do
-        Logger.error("#{id} Chain failure. Check logs: #{Map.get(config, :output, "")}")
+        Logger.error(
+          "#{id} Chain failed with status: #{status}. Check logs: #{Map.get(config, :output, "")}"
+        )
 
         if pid = Map.get(config, :notify_pid) do
           Logger.debug("#{id} Sending notification to #{inspect(pid)}")
-          send(pid, {:error, "#{id} failed to start chain. Got status code 1"})
+          send(pid, {:error, "#{id} chain terminated with status #{status}"})
         end
 
-        {:stop, {:shutdown, :failed_to_start}, state}
+        case started do
+          true ->
+            {:stop, :chain_failure, state}
+
+          false ->
+            {:stop, {:shutdown, :failed_to_start}, state}
+        end
       end
 
       def handle_info(msg, %State{id: id} = state) do
