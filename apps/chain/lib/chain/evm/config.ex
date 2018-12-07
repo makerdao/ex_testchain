@@ -28,7 +28,6 @@ defmodule Chain.EVM.Config do
           notify_pid: nil | pid()
         }
 
-  @enforce_keys [:db_path]
   defstruct type: :ganache,
             id: nil,
             http_port: 8545,

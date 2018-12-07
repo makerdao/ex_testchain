@@ -146,12 +146,20 @@ defmodule Chain do
   end
 
   # Try to start evm using given module/config
-  defp start_evm(_, %Config{db_path: ""}), do: {:error, "Wrong db_path... Please define it !"}
-
   defp start_evm(module, %Config{id: nil} = config) do
     id = unique_id()
 
-    start_evm_process(module, %Config{config | id: id})
+    start_evm(module, %Config{config | id: id})
+  end
+
+  defp start_evm(module, %Config{id: id, db_path: ""} = config) do
+    path =
+      Application.get_env(:chain, :base_path, "/tmp")
+      |> Path.expand()
+      |> Path.join(id)
+
+    Logger.debug("#{id}: Chain DB path not configured will generate #{path}")
+    start_evm(module, %Config{config | db_path: path})
   end
 
   defp start_evm(module, config), do: start_evm_process(module, config)
@@ -161,17 +169,15 @@ defmodule Chain do
     config = fix_path(config)
     %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
 
+    unless File.exists?(db_path) do
+      Logger.debug("#{id}: #{db_path} not exist, creating...")
+      :ok = File.mkdir_p!(db_path)
+    end
+
     with false <- Watcher.port_in_use?(http_port),
          false <- Watcher.port_in_use?(ws_port),
-         false <- Watcher.path_in_use?(db_path) do
-      # Checks succes nothing is in use. let's start chain
-      unless File.exists?(db_path) do
-        Logger.debug("#{id}: #{db_path} not exist, creating...")
-        :ok = File.mkdir_p!(db_path)
-      end
-
-      {:ok, _pid} = Chain.EVM.Supervisor.start_evm(module, config)
-
+         false <- Watcher.path_in_use?(db_path),
+         {:ok, _pid} <- Chain.EVM.Supervisor.start_evm(module, config) do
       {:ok, id}
     else
       true ->

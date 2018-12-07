@@ -13,4 +13,7 @@ config :porcelain, driver: Porcelain.Driver.Basic
 # Amount of time in ms process allowed to perform "blocking" work before supervisor will terminate it
 config :chain, kill_timeout: 180_000
 
+# Default folder where all chain db's will be created, please use full path
+config :chain, base_path: "/tmp/chains"
+
 # config :logger, level: :info

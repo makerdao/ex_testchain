@@ -30,6 +30,9 @@ defmodule Chain.EVM do
 
   @doc """
   This callback will be called when system will need to stop EVM.
+
+  **Note:** this function will be called several times and if it wouldn't return
+  success after `@max_start_checks` EVM will raise error. Be ready for that.
   """
   @callback stop(state :: any()) :: action_reply()
 
@@ -44,7 +47,7 @@ defmodule Chain.EVM do
   @callback handle_started(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
-  Handle incomming message from outside world
+  Handle incomming message from started OS chain process
   """
   @callback handle_msg(msg :: term(), state :: any()) :: action_reply()
 
@@ -123,10 +126,22 @@ defmodule Chain.EVM do
       @max_start_checks 10
 
       defmodule State do
-        @moduledoc false
+        @moduledoc """
+        Default structure for handling state into any EVM implementation
+
+        Consist of this properties:
+         - `id` - chain identifier
+         - `started` - boolean flag, shows if chain started successfully.
+         - `config` - default configuration for chain. Not available in implemented callback functions
+         - `internal_state` - state for chain implementation
+
+        `internal_state` - will be passed as state for all implemented callback functions
+        TODO: have to solve issue with passing config. otherwise implementation have to store 
+        it also. So data duplicates.
+        """
 
         @type t :: %__MODULE__{
-                id: non_neg_integer(),
+                id: Chain.evm_id(),
                 started: boolean,
                 config: Chain.EVM.Config.t(),
                 internal_state: term()
@@ -157,9 +172,11 @@ defmodule Chain.EVM do
 
             # Schedule started check
             check_started(self())
+
             # Adding chain process to `Chain.Watcher`
             %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
             Chain.Watcher.watch(http_port, ws_port, db_path)
+
             # Added. finishing
             {:noreply, %State{state | internal_state: internal_state}}
 
@@ -179,6 +196,7 @@ defmodule Chain.EVM do
         |> handle_action(state)
       end
 
+      @doc false
       def handle_info(
             {:check_started, retries},
             %State{id: id, internal_state: internal_state, config: config} = state
