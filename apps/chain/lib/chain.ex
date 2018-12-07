@@ -87,8 +87,8 @@ defmodule Chain do
   Generates new chain snapshot and places it into given path
   If path does not exist - system will try to create this path
 
-  If EVM does not need path (like ganache with it's internal snapshots)
-  You could omit it.
+  **Note** this spanshot will be taken based on chain files. 
+  For chains with internal shnapshot features - you might use `Chain.take_internal_snapshot/1`
 
   Function will return path_to_snapshot or generated id
   """
@@ -103,6 +103,23 @@ defmodule Chain do
   @spec revert_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
   def revert_snapshot(id, path_or_id),
     do: GenServer.call(get_pid!(id), {:revert_snapshot, path_or_id}, @timeout)
+
+  @doc """
+  Take internal snapshot on chain. 
+  That function should use internal chain snapshoting features
+  For example for ganache there is `evm_snapshot` command
+  """
+  @spec take_internal_snapshot(Chain.evm_id()) :: {:ok, binary | number} | {:error, term()}
+  def take_internal_snapshot(id),
+    do: GenServer.call(get_pid!(id), :take_internal_snapshot, @timeout)
+
+  @doc """
+  Reverting chain to given shapshot id.
+  If chain missing internal snapshoting features it might ignore this function.
+  """
+  @spec revert_internal_snapshot(Chain.evm_id(), binary | number) :: :ok | {:error, term()}
+  def revert_internal_snapshot(id, snapshot_id),
+    do: GenServer.call(get_pid!(id), {:revert_internal_snapshot, snapshot_id})
 
   @doc """
   Load list of evms version used in app
