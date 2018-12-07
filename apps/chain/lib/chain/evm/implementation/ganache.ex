@@ -18,10 +18,7 @@ defmodule Chain.EVM.Implementation.Ganache do
     file = open_log_file(config)
 
     Logger.debug("#{id}: Starting ganache-cli")
-    %{err: nil, pid: pid} = port = start_node(config)
-    Process.link(pid)
-    IO.inspect(self())
-    IO.inspect(pid)
+    %{err: nil} = port = start_node(config)
     {:ok, %{port: port, id: id, config: config, mining: true, log_file: file}}
   end
 

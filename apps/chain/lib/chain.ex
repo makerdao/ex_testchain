@@ -5,6 +5,7 @@ defmodule Chain do
 
   alias Chain.EVM.Implementation.{Geth, Ganache}
   alias Chain.EVM.Config
+  alias Chain.Watcher
 
   require Logger
 
@@ -158,16 +159,27 @@ defmodule Chain do
   # Starts new EVM genserver inser default supervisor
   defp start_evm_process(module, %Config{id: id} = config) do
     config = fix_path(config)
-    db_path = Map.get(config, :db_path)
+    %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
 
-    unless File.exists?(db_path) do
-      Logger.debug("#{id}: #{db_path} not exist, creating...")
-      :ok = File.mkdir_p!(db_path)
+    with false <- Watcher.port_in_use?(http_port),
+         false <- Watcher.port_in_use?(ws_port),
+         false <- Watcher.path_in_use?(db_path) do
+      # Checks succes nothing is in use. let's start chain
+      unless File.exists?(db_path) do
+        Logger.debug("#{id}: #{db_path} not exist, creating...")
+        :ok = File.mkdir_p!(db_path)
+      end
+
+      {:ok, _pid} = Chain.EVM.Supervisor.start_evm(module, config)
+
+      {:ok, id}
+    else
+      true ->
+        {:error, "port or path are in use"}
+
+      _ ->
+        {:error, "Something went wrong on starting chain"}
     end
-
-    {:ok, _pid} = Chain.EVM.Supervisor.start_evm(module, config)
-
-    {:ok, id}
   end
 
   # Expands path like `~/something` to normal path
