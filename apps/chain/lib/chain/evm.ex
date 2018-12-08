@@ -136,13 +136,11 @@ defmodule Chain.EVM do
         Default structure for handling state into any EVM implementation
 
         Consist of this properties:
-         - `started` - boolean flag, shows if chain started successfully.
+         - `started` - boolean flag, shows if chain started successfully. it will be set only once
          - `config` - default configuration for chain. Not available in implemented callback functions
          - `internal_state` - state for chain implementation
 
         `internal_state` - will be passed as state for all implemented callback functions
-        TODO: have to solve issue with passing config. otherwise implementation have to store 
-        it also. So data duplicates.
         """
 
         @type t :: %__MODULE__{
