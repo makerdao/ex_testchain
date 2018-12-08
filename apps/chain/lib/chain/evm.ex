@@ -49,7 +49,7 @@ defmodule Chain.EVM do
   @doc """
   Handle incomming message from started OS chain process
   """
-  @callback handle_msg(msg :: term(), state :: any()) :: action_reply()
+  @callback handle_msg(msg :: term(), config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Should start mining process for EVM
@@ -189,10 +189,10 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_pid, :data, :out, msg},
-            %State{internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
         msg
-        |> handle_msg(internal_state)
+        |> handle_msg(config, internal_state)
         |> handle_action(state)
       end
 
@@ -344,7 +344,7 @@ defmodule Chain.EVM do
       end
 
       @impl Chain.EVM
-      def handle_msg(_str, _state), do: :ok
+      def handle_msg(_str, _config, _state), do: :ignore
 
       @impl Chain.EVM
       def started?(%{id: id, http_port: http_port}, _) do
@@ -435,7 +435,7 @@ defmodule Chain.EVM do
       # Allow to override functions
       defoverridable handle_started: 2,
                      started?: 2,
-                     handle_msg: 2,
+                     handle_msg: 3,
                      version: 0,
                      take_snapshot: 2,
                      revert_snapshot: 2,

@@ -41,9 +41,9 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def handle_msg(_str, %{log_file: nil}), do: :ok
+  def handle_msg(_str, _, %{log_file: nil}), do: :ok
 
-  def handle_msg(str, %{log_file: file}) do
+  def handle_msg(str, _, %{log_file: file}) do
     IO.binwrite(file, str)
     :ok
   end
