@@ -44,7 +44,7 @@ defmodule Chain.EVM.Implementation.Geth do
     Logger.debug("#{id}: starting port with geth node")
     %{err: nil} = port = start_node(config, accounts)
 
-    {:ok, %{port: port, id: id, config: config, accounts: accounts, mining: false}}
+    {:ok, %{port: port, accounts: accounts, mining: false}}
   end
 
   @impl Chain.EVM
