@@ -89,7 +89,7 @@ defmodule Chain.EVM.Implementation.Ganache do
   def revert_snapshot(_, _config, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
 
   @impl Chain.EVM
-  def terminate(%{port: port, id: id, log_file: file}) do
+  def terminate(id, _config, %{port: port, log_file: file}) do
     Logger.info("#{id}: Terminating...")
     Porcelain.Process.stop(port)
 

@@ -160,7 +160,7 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def terminate(%{port: port, id: id} = state) do
+  def terminate(id, _config, %{port: port} = state) do
     Logger.info("#{id}: Terminating... #{inspect(state)}")
     Porcelain.Process.stop(port)
     :ok

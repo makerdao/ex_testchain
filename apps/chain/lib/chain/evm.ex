@@ -111,7 +111,8 @@ defmodule Chain.EVM do
   @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
   """
-  @callback terminate(state :: term()) :: term()
+  @callback terminate(id :: Chain.evm_id(), config :: Chain.EVM.Config.t(), state :: term()) ::
+              term()
 
   @doc """
   Callback will be called to get exact EVM version
@@ -352,9 +353,12 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def terminate(reason, %State{id: id, internal_state: internal_state} = state) do
+      def terminate(
+            reason,
+            %State{id: id, config: config, internal_state: internal_state} = state
+          ) do
         Logger.debug("#{id} Terminating evm with reason: #{inspect(reason)}")
-        terminate(internal_state)
+        terminate(id, config, internal_state)
       end
 
       @impl Chain.EVM
