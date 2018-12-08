@@ -97,14 +97,16 @@ defmodule Chain.EVM do
   Some chains like `ganache` has internal snapshoting functionality
   And this functionality might be used by some tests/scripts. 
   """
-  @callback take_internal_snapshot(state :: any()) :: action_reply()
+  @callback take_internal_snapshot(config :: Chain.EVM.Config.t(), state :: any()) ::
+              action_reply()
 
   @doc """
   Callback will be invoked on reverting internal snapshot by it's id. 
 
   Working for only chains like `ganache` that has internal snapshots functionality
   """
-  @callback revert_internal_snapshot(id :: binary, state :: any()) :: action_reply()
+  @callback revert_internal_snapshot(id :: binary, config :: Chain.EVM.Config.t(), state :: any()) ::
+              action_reply()
 
   @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
@@ -291,10 +293,10 @@ defmodule Chain.EVM do
       def handle_call(
             :take_internal_snapshot,
             _from,
-            %State{internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        internal_state
-        |> take_internal_snapshot()
+        config
+        |> take_internal_snapshot(internal_state)
         |> handle_action(state)
       end
 
@@ -302,10 +304,10 @@ defmodule Chain.EVM do
       def handle_call(
             {:revert_internal_snapshot, snapshot_id},
             _from,
-            %State{internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
         snapshot_id
-        |> revert_internal_snapshot(internal_state)
+        |> revert_internal_snapshot(config, internal_state)
         |> handle_action(state)
       end
 
@@ -415,10 +417,10 @@ defmodule Chain.EVM do
       def revert_snapshot(path_or_id, _config, _state), do: :ignore
 
       @impl Chain.EVM
-      def take_internal_snapshot(state), do: {:reply, {:error, :not_implemented}, state}
+      def take_internal_snapshot(_config, state), do: {:reply, {:error, :not_implemented}, state}
 
       @impl Chain.EVM
-      def revert_internal_snapshot(_id, _state), do: :ignore
+      def revert_internal_snapshot(_id, _config, _state), do: :ignore
 
       # Internal handler for evm actions
       defp handle_action(reply, %State{id: id} = state) do
@@ -454,8 +456,8 @@ defmodule Chain.EVM do
                      version: 0,
                      take_snapshot: 3,
                      revert_snapshot: 3,
-                     take_internal_snapshot: 1,
-                     revert_internal_snapshot: 2
+                     take_internal_snapshot: 2,
+                     revert_internal_snapshot: 3
     end
   end
 
