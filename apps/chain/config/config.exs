@@ -20,4 +20,8 @@ config :chain, kill_timeout: 180_000
 # `/tmp/chains/some-id-here`
 config :chain, base_path: "/tmp/chains"
 
+# Default path where snapshots will be stored for chain
+# chain id will be added as a target folder under this path
+config :chain, snapshot_base_path: "/tmp/snapshots"
+
 # config :logger, level: :info
