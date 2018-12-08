@@ -235,11 +235,19 @@ defmodule Chain.EVM do
       # But if chain was not yet started - we have to ignore this and just terminate PID
       @doc false
       def handle_info(
+            {_, :result, %Porcelain.Result{status: nil}},
+            %State{config: %{id: id}} = state
+          ) do
+        Logger.debug("#{id}: Chain terminated manually without any error !")
+        {:noreply, state}
+      end
+
+      def handle_info(
             {_, :result, %Porcelain.Result{status: status}},
             %State{started: started, config: config} = state
           ) do
         Logger.error(
-          "#{config.id} Chain failed with status: #{status}. Check logs: #{
+          "#{config.id} Chain failed with status: #{inspect(status)}. Check logs: #{
             Map.get(config, :output, "")
           }"
         )

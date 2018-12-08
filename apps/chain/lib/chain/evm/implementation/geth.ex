@@ -119,7 +119,7 @@ defmodule Chain.EVM.Implementation.Geth do
         %{err: nil} = port = start_node(config, accounts)
         Logger.debug("#{id} Starting chain after making a snapshot")
 
-        :ok = wait_started(state)
+        :ok = wait_started(config, state)
         # Returning spanshot details
         {:reply, {:ok, path_to}, %{state | port: port, mining: Map.get(config, :automine, false)}}
 
@@ -152,7 +152,7 @@ defmodule Chain.EVM.Implementation.Geth do
         %{err: nil} = port = start_node(config, accounts)
         Logger.debug("#{id} Starting chain after restoring a snapshot")
 
-        :ok = wait_started(state)
+        :ok = wait_started(config, state)
         Logger.debug("#{id} Chain restored snapshot from #{path_from}")
         # Returning spanshot details
         {:reply, :ok, %{state | port: port}}
@@ -389,20 +389,20 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   # waiting for 30 secs geth to start if not started - raising error
-  defp wait_started(state, times \\ 0)
+  defp wait_started(config, state, times \\ 0)
 
-  defp wait_started(%{id: id}, times) when times >= 150,
+  defp wait_started(%{id: id}, _state, times) when times >= 150,
     do: raise("#{id} Timeout waiting geth to start...")
 
-  defp wait_started(%{config: %{http_port: http_port}} = state, times) do
-    case exec_command(http_port, "eth_coinbase") do
-      {:ok, _} ->
+  defp wait_started(config, state, times) do
+    case started?(config, state) do
+      true ->
         :ok
 
       _ ->
         # Waiting
         :timer.sleep(200)
-        wait_started(state, times + 1)
+        wait_started(config, state, times + 1)
     end
   end
 end
