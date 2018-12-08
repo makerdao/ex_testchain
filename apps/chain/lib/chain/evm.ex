@@ -136,7 +136,6 @@ defmodule Chain.EVM do
         Default structure for handling state into any EVM implementation
 
         Consist of this properties:
-         - `id` - chain identifier
          - `started` - boolean flag, shows if chain started successfully.
          - `config` - default configuration for chain. Not available in implemented callback functions
          - `internal_state` - state for chain implementation
@@ -147,12 +146,12 @@ defmodule Chain.EVM do
         """
 
         @type t :: %__MODULE__{
-                id: Chain.evm_id(),
                 started: boolean,
                 config: Chain.EVM.Config.t(),
                 internal_state: term()
               }
-        defstruct id: nil, started: false, config: nil, internal_state: nil
+        @enforce_keys [:config]
+        defstruct started: false, config: nil, internal_state: nil
       end
 
       @doc false
@@ -166,15 +165,15 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def init(%Config{id: id} = config) do
-        {:ok, %State{id: id, config: config}, {:continue, :start_chain}}
+      def init(%Config{} = config) do
+        {:ok, %State{config: config}, {:continue, :start_chain}}
       end
 
       @doc false
-      def handle_continue(:start_chain, %State{id: id, config: config} = state) do
+      def handle_continue(:start_chain, %State{config: config} = state) do
         case start(config) do
           {:ok, internal_state} ->
-            Logger.debug("#{id}: Chain init started successfully ! Waiting for JSON-RPC.")
+            Logger.debug("#{config.id}: Chain init started successfully ! Waiting for JSON-RPC.")
 
             # Schedule started check
             check_started(self())
@@ -187,7 +186,7 @@ defmodule Chain.EVM do
             {:noreply, %State{state | internal_state: internal_state}}
 
           {:error, err} ->
-            Logger.error("#{id}: on start: #{err}")
+            Logger.error("#{config.id}: on start: #{err}")
             {:stop, {:shutdown, :failed_to_start}, state}
         end
       end
@@ -205,13 +204,13 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {:check_started, retries},
-            %State{id: id, internal_state: internal_state, config: config} = state
+            %State{internal_state: internal_state, config: config} = state
           ) do
-        Logger.debug("#{id}: Check if evm started")
+        Logger.debug("#{config.id}: Check if evm started")
 
         case started?(config, internal_state) do
           true ->
-            Logger.debug("#{id}: EVM Finally started !")
+            Logger.debug("#{config.id}: EVM Finally started !")
 
             config
             |> handle_started(internal_state)
@@ -219,10 +218,10 @@ defmodule Chain.EVM do
             |> handle_action(%State{state | started: true})
 
           false ->
-            Logger.debug("#{id}: (#{retries}) not started fully yet...")
+            Logger.debug("#{config.id}: (#{retries}) not started fully yet...")
 
             if retries >= @max_start_checks do
-              raise "#{id}: Failed to start evm"
+              raise "#{config.id}: Failed to start evm"
             end
 
             check_started(self(), retries + 1)
@@ -239,15 +238,17 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_, :result, %Porcelain.Result{status: status}},
-            %State{id: id, started: started, config: config} = state
+            %State{started: started, config: config} = state
           ) do
         Logger.error(
-          "#{id} Chain failed with status: #{status}. Check logs: #{Map.get(config, :output, "")}"
+          "#{config.id} Chain failed with status: #{status}. Check logs: #{
+            Map.get(config, :output, "")
+          }"
         )
 
         if pid = Map.get(config, :notify_pid) do
-          Logger.debug("#{id} Sending notification to #{inspect(pid)}")
-          send(pid, {:error, "#{id} chain terminated with status #{status}"})
+          Logger.debug("#{config.id} Sending notification to #{inspect(pid)}")
+          send(pid, {:error, "#{config.id} chain terminated with status #{status}"})
         end
 
         case started do
@@ -259,8 +260,8 @@ defmodule Chain.EVM do
         end
       end
 
-      def handle_info(msg, %State{id: id} = state) do
-        Logger.debug("#{id}: Got msg #{inspect(msg)}")
+      def handle_info(msg, state) do
+        Logger.debug("#{state.config.id}: Got msg #{inspect(msg)}")
         {:noreply, state}
       end
 
@@ -268,9 +269,9 @@ defmodule Chain.EVM do
       def handle_call(
             {:take_snapshot, path_to},
             _from,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{id}: Taking chain snapshot to #{path_to}")
+        Logger.debug("#{config.id}: Taking chain snapshot to #{path_to}")
 
         path_to
         |> take_snapshot(config, internal_state)
@@ -281,9 +282,9 @@ defmodule Chain.EVM do
       def handle_call(
             {:revert_snapshot, path_or_id},
             _from,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{id}: Reverting chain snapshot from #{path_or_id}")
+        Logger.debug("#{config.id}: Reverting chain snapshot from #{path_or_id}")
 
         path_or_id
         |> revert_snapshot(config, internal_state)
@@ -315,15 +316,15 @@ defmodule Chain.EVM do
       @doc false
       def handle_cast(
             :stop,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
         case stop(config, internal_state) do
           {:ok, new_internal_state} ->
-            Logger.debug("#{id}: Successfully stopped EVM")
+            Logger.debug("#{config.id}: Successfully stopped EVM")
             {:stop, :normal, %State{state | internal_state: new_internal_state}}
 
           {:error, err} ->
-            Logger.error("#{id}: Failed to stop EVM with error: #{inspect(err)}")
+            Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")
             {:stop, :shutdown, state}
         end
       end
@@ -331,9 +332,9 @@ defmodule Chain.EVM do
       @doc false
       def handle_cast(
             :start_mine,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{id}: Starting mining process")
+        Logger.debug("#{config.id}: Starting mining process")
 
         config
         |> start_mine(internal_state)
@@ -343,9 +344,9 @@ defmodule Chain.EVM do
       @doc false
       def handle_cast(
             :stop_mine,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{id}: Stopping mining process")
+        Logger.debug("#{config.id}: Stopping mining process")
 
         config
         |> stop_mine(internal_state)
@@ -355,17 +356,25 @@ defmodule Chain.EVM do
       @doc false
       def terminate(
             reason,
-            %State{id: id, config: config, internal_state: internal_state} = state
+            %State{config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{id} Terminating evm with reason: #{inspect(reason)}")
-        terminate(id, config, internal_state)
+        Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
+        # I have to make terminate function with 3 params. ptherwise it might override 
+        # `GenServer.terminate/2` 
+        terminate(config.id, config, internal_state)
       end
+
+      ######
+      #
+      # Default implementation functions for any EVM
+      #
+      ######
 
       @impl Chain.EVM
       def handle_msg(_str, _config, _state), do: :ignore
 
       @impl Chain.EVM
-      def started?(%{id: id, http_port: http_port}, _) do
+      def started?(%Config{id: id, http_port: http_port}, _) do
         Logger.debug("#{id}: Checking if EVM online")
 
         case JsonRpc.eth_coinbase("http://localhost:#{http_port}") do
@@ -426,8 +435,14 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def revert_internal_snapshot(_id, _config, _state), do: :ignore
 
+      ########
+      #
+      # Private functions for EVM
+      #
+      ########
+
       # Internal handler for evm actions
-      defp handle_action(reply, %State{id: id} = state) do
+      defp handle_action(reply, state) do
         case reply do
           :ok ->
             {:noreply, state}
@@ -442,7 +457,7 @@ defmodule Chain.EVM do
             {:reply, reply, %State{state | internal_state: new_internal_state}}
 
           {:error, err} ->
-            Logger.error("#{id}: action failed with error: #{inspect(err)}")
+            Logger.error("#{state.config.id}: action failed with error: #{inspect(err)}")
         end
       end
 
