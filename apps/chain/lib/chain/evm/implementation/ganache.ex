@@ -29,13 +29,13 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def start_mine(%{config: %Config{http_port: http_port}} = state) do
+  def start_mine(%Config{http_port: http_port}, state) do
     {:ok, true} = exec_command(http_port, "miner_start")
     {:ok, %{state | mining: true}}
   end
 
   @impl Chain.EVM
-  def stop_mine(%{config: %Config{http_port: http_port}} = state) do
+  def stop_mine(%Config{http_port: http_port}, state) do
     {:ok, true} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
   end
@@ -51,7 +51,8 @@ defmodule Chain.EVM.Implementation.Ganache do
   @impl Chain.EVM
   def take_snapshot(
         _,
-        %{id: id, config: %{http_port: http_port}} = state
+        %{id: id, http_port: http_port},
+        state
       ) do
     Logger.debug("#{id}: Making snapshot")
 
@@ -69,7 +70,8 @@ defmodule Chain.EVM.Implementation.Ganache do
   @impl Chain.EVM
   def revert_snapshot(
         <<"0x", _::binary>> = snapshot,
-        %{id: id, config: %{http_port: http_port}} = state
+        %{id: id, http_port: http_port},
+        state
       ) do
     Logger.debug("#{id} Reverting snapshot #{snapshot}")
 
@@ -84,7 +86,7 @@ defmodule Chain.EVM.Implementation.Ganache do
     end
   end
 
-  def revert_snapshot(_, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
+  def revert_snapshot(_, _config, state), do: {:reply, {:error, :wrong_snapshot_id}, state}
 
   @impl Chain.EVM
   def terminate(%{port: port, id: id, log_file: file}) do

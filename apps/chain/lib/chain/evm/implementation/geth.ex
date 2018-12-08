@@ -54,12 +54,9 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def handle_started(
-        %{id: id, notify_pid: pid, automine: mine, http_port: http_port, ws_port: ws_port},
-        state
-      ) do
+  def handle_started(config, state) do
+    %{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port} = config
     Logger.debug("#{id}: Everything loaded...")
-
     # If needed to send process details somewhere - go ahead
     unless is_nil(pid) do
       # Running http requests in async mode to not block scheduler
@@ -81,22 +78,17 @@ defmodule Chain.EVM.Implementation.Geth do
       send(pid, result)
     end
 
-    # Check for mining. Starting if automine is on
-    if mine do
-      start_mine(state)
-    end
-
-    {:ok, %{state | mining: mine}}
+    {:ok, state}
   end
 
   @impl Chain.EVM
-  def start_mine(%{config: %Config{http_port: http_port}} = state) do
+  def start_mine(%Config{http_port: http_port}, state) do
     {:ok, nil} = exec_command(http_port, "miner_start", [1])
     {:ok, %{state | mining: true}}
   end
 
   @impl Chain.EVM
-  def stop_mine(%{config: %Config{http_port: http_port}} = state) do
+  def stop_mine(%Config{http_port: http_port}, state) do
     {:ok, nil} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
   end
@@ -104,7 +96,8 @@ defmodule Chain.EVM.Implementation.Geth do
   @impl Chain.EVM
   def take_snapshot(
         path_to,
-        %{id: id, config: config, accounts: accounts} = state
+        %{id: id} = config,
+        %{accounts: accounts} = state
       ) do
     Logger.debug("#{id}: Making snapshot")
 
@@ -136,7 +129,7 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def revert_snapshot(path_from, %{id: id, config: config, accounts: accounts} = state) do
+  def revert_snapshot(path_from, %{id: id} = config, %{accounts: accounts} = state) do
     Logger.debug("#{id} restoring snapshot from #{path_from}")
 
     db_path = Map.get(config, :db_path)

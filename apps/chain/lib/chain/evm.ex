@@ -49,17 +49,18 @@ defmodule Chain.EVM do
   @doc """
   Handle incomming message from started OS chain process
   """
-  @callback handle_msg(msg :: term(), config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
+  @callback handle_msg(msg :: term(), config :: Chain.EVM.Config.t(), state :: any()) ::
+              action_reply()
 
   @doc """
   Should start mining process for EVM
   """
-  @callback start_mine(state :: any()) :: action_reply()
+  @callback start_mine(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Stop mining process for EVM
   """
-  @callback stop_mine(state :: any()) :: action_reply()
+  @callback stop_mine(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Callback will be invoked on take snapshot command. Chain have to perform snapshot operation
@@ -74,7 +75,8 @@ defmodule Chain.EVM do
 
   If system tries to make a snapshot to directory. Make sure it's empty !
   """
-  @callback take_snapshot(path_to :: binary, state :: any()) :: action_reply()
+  @callback take_snapshot(path_to :: binary, config :: Chain.EVM.Config.t(), state :: any()) ::
+              action_reply()
 
   @doc """
   Callback will be invoked on revert snapshot command.
@@ -86,7 +88,8 @@ defmodule Chain.EVM do
   If `path_or_id` snapshot does not exist `{:reply, {:error, term()}, state}` should be returned
   In case of success - `{:reply, :ok, state}` should be returned
   """
-  @callback revert_snapshot(path_or_id :: binary, state :: any()) :: action_reply()
+  @callback revert_snapshot(path_or_id :: binary, config :: Chain.EVM.Config.t(), state :: any()) ::
+              action_reply()
 
   @doc """
   Callback will be invoked on internal spanshot.
@@ -262,12 +265,12 @@ defmodule Chain.EVM do
       def handle_call(
             {:take_snapshot, path_to},
             _from,
-            %State{id: id, internal_state: internal_state} = state
+            %State{id: id, config: config, internal_state: internal_state} = state
           ) do
         Logger.debug("#{id}: Taking chain snapshot to #{path_to}")
 
         path_to
-        |> take_snapshot(internal_state)
+        |> take_snapshot(config, internal_state)
         |> handle_action(state)
       end
 
@@ -275,12 +278,12 @@ defmodule Chain.EVM do
       def handle_call(
             {:revert_snapshot, path_or_id},
             _from,
-            %State{id: id, internal_state: internal_state} = state
+            %State{id: id, config: config, internal_state: internal_state} = state
           ) do
         Logger.debug("#{id}: Reverting chain snapshot from #{path_or_id}")
 
         path_or_id
-        |> revert_snapshot(internal_state)
+        |> revert_snapshot(config, internal_state)
         |> handle_action(state)
       end
 
@@ -307,7 +310,10 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def handle_cast(:stop, %State{id: id, config: config, internal_state: internal_state} = state) do
+      def handle_cast(
+            :stop,
+            %State{id: id, config: config, internal_state: internal_state} = state
+          ) do
         case stop(config, internal_state) do
           {:ok, new_internal_state} ->
             Logger.debug("#{id}: Successfully stopped EVM")
@@ -320,20 +326,26 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def handle_cast(:start_mine, %State{id: id, internal_state: internal_state} = state) do
+      def handle_cast(
+            :start_mine,
+            %State{id: id, config: config, internal_state: internal_state} = state
+          ) do
         Logger.debug("#{id}: Starting mining process")
 
-        internal_state
-        |> start_mine()
+        config
+        |> start_mine(internal_state)
         |> handle_action(state)
       end
 
       @doc false
-      def handle_cast(:stop_mine, %State{id: id, internal_state: internal_state} = state) do
+      def handle_cast(
+            :stop_mine,
+            %State{id: id, config: config, internal_state: internal_state} = state
+          ) do
         Logger.debug("#{id}: Stopping mining process")
 
-        internal_state
-        |> stop_mine()
+        config
+        |> stop_mine(internal_state)
         |> handle_action(state)
       end
 
@@ -390,16 +402,17 @@ defmodule Chain.EVM do
       def version(), do: "x.x.x"
 
       @impl Chain.EVM
-      def take_snapshot(path_to, %State{id: id} = state) do
-        Logger.warn("#{id} take_snapshot not implemented")
-        {:reply, {:error, :not_implemented}, state}
-      end
+      def start_mine(_, _), do: :ignore
 
       @impl Chain.EVM
-      def revert_snapshot(path_or_id, %State{id: id} = state) do
-        Logger.warn("#{id} revert_snapshot not implemented")
-        {:reply, :ok, state}
-      end
+      def stop_mine(_, _), do: :ignore
+
+      @impl Chain.EVM
+      def take_snapshot(path_to, _config, state),
+        do: {:reply, {:error, :not_implemented}, state}
+
+      @impl Chain.EVM
+      def revert_snapshot(path_or_id, _config, _state), do: :ignore
 
       @impl Chain.EVM
       def take_internal_snapshot(state), do: {:reply, {:error, :not_implemented}, state}
@@ -436,9 +449,11 @@ defmodule Chain.EVM do
       defoverridable handle_started: 2,
                      started?: 2,
                      handle_msg: 3,
+                     start_mine: 2,
+                     stop_mine: 2,
                      version: 0,
-                     take_snapshot: 2,
-                     revert_snapshot: 2,
+                     take_snapshot: 3,
+                     revert_snapshot: 3,
                      take_internal_snapshot: 1,
                      revert_internal_snapshot: 2
     end
