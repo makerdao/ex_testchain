@@ -23,7 +23,7 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def stop(%{port: port} = state) do
+  def stop(_, %{port: port} = state) do
     true = Porcelain.Process.stop(port)
     {:ok, state}
   end

@@ -26,7 +26,7 @@ defmodule Chain.EVM do
   In must return `{:ok, state}`, that `state` will be keept as in `GenServer` and can be 
   retrieved in futher functions.
   """
-  @callback start(config :: Config.t()) :: {:ok, state :: any()} | {:error, term()}
+  @callback start(config :: Chain.EVM.Config.t()) :: {:ok, state :: any()} | {:error, term()}
 
   @doc """
   This callback will be called when system will need to stop EVM.
@@ -34,7 +34,7 @@ defmodule Chain.EVM do
   **Note:** this function will be called several times and if it wouldn't return
   success after `@max_start_checks` EVM will raise error. Be ready for that.
   """
-  @callback stop(state :: any()) :: action_reply()
+  @callback stop(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Callback is called to check if EVM started and responsive
@@ -307,8 +307,8 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def handle_cast(:stop, %State{id: id, internal_state: internal_state} = state) do
-        case stop(internal_state) do
+      def handle_cast(:stop, %State{id: id, config: config, internal_state: internal_state} = state) do
+        case stop(config, internal_state) do
           {:ok, new_internal_state} ->
             Logger.debug("#{id}: Successfully stopped EVM")
             {:stop, :normal, %State{state | internal_state: new_internal_state}}

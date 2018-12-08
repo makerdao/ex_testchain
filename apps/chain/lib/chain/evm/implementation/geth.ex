@@ -48,7 +48,7 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def stop(%{port: port} = state) do
+  def stop(_, %{port: port} = state) do
     send_command(port, "exit")
     {:ok, state}
   end
@@ -118,7 +118,7 @@ defmodule Chain.EVM.Implementation.Geth do
     case File.ls(path_to) do
       {:ok, []} ->
         Logger.debug("#{id} Stopping chain before snapshot")
-        {:ok, _} = stop(state)
+        {:ok, _} = stop(config, state)
 
         {:ok, _} = File.cp_r(db_path, path_to)
         Logger.debug("#{id}: Snapshot made to #{path_to}")
@@ -147,7 +147,7 @@ defmodule Chain.EVM.Implementation.Geth do
 
       true ->
         Logger.debug("#{id} Stopping chain before restoring snapshot")
-        {:ok, _} = stop(state)
+        {:ok, _} = stop(config, state)
 
         if File.dir?(db_path) do
           {:ok, _} = File.rm_rf(db_path)
