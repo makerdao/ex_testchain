@@ -2,7 +2,8 @@ defmodule WebApiWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", WebApiWeb.RoomChannel
+  channel "chain:*", WebApiWeb.ChainChannel
+  channel "*", WebApiWeb.ApiChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
