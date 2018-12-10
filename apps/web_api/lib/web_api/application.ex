@@ -8,6 +8,7 @@ defmodule WebApi.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
+      WebApi.ChainMessageHandler,
       # Start the endpoint when the application starts
       WebApiWeb.Endpoint
       # Starts a worker by calling: WebApi.Worker.start_link(arg)

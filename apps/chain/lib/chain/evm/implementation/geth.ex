@@ -75,7 +75,7 @@ defmodule Chain.EVM.Implementation.Geth do
         ws_url: "ws://localhost:#{ws_port}"
       }
 
-      send(pid, result)
+      send(pid, {:started, result})
     end
 
     {:ok, state}
