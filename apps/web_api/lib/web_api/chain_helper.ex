@@ -1,5 +1,6 @@
 defmodule WebApi.ChainHelper do
   require Logger
+  alias Chain.EVM.Notification
 
   def spawn_notification_handler(pid, socket_ref) do
     Task.start(fn ->
@@ -9,10 +10,10 @@ defmodule WebApi.ChainHelper do
 
   defp handle_notification(pid, socket_ref) do
     receive do
-      {:error, err} ->
+      %Notification{event: :error, data: err} ->
         send(pid, {:error, err, socket_ref})
 
-      {:started, data} ->
+      %Notification{event: :started, data: data} ->
         send(pid, {:started, data, socket_ref})
 
       other ->

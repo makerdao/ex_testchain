@@ -6,13 +6,16 @@ defmodule WebApi.ChainMessageHandler do
   """
   use GenServer
 
+  alias Chain.EVM.Notification
+
   @doc false
   def start_link(_), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc false
   def init(_), do: {:ok, []}
 
-  def handle_info({:started, data}, state) do
+  def handle_info(%Notification{id: id, event: :started, data: data}, state) do
+    IO.inspect(id)
     IO.inspect(data)
     {:noreply, state}
   end
