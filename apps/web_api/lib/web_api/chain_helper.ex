@@ -1,13 +1,11 @@
 defmodule WebApi.ChainHelper do
-
   require Logger
-  
+
   def spawn_notification_handler(pid, socket_ref) do
-    Task.start(fn -> 
+    Task.start(fn ->
       handle_notification(pid, socket_ref)
     end)
   end
-
 
   defp handle_notification(pid, socket_ref) do
     receive do

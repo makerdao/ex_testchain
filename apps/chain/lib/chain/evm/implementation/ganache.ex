@@ -5,6 +5,7 @@ defmodule Chain.EVM.Implementation.Ganache do
   use Chain.EVM
 
   alias Chain.EVM.Config
+  alias Chain.EVM.Notification
 
   @ganache_cli Path.absname("../../priv/presets/ganache/node_modules/.bin/ganache-cli")
   @wrapper_file Path.absname("../../priv/presets/ganache/wrapper.sh")
@@ -70,6 +71,11 @@ defmodule Chain.EVM.Implementation.Ganache do
         Logger.debug("#{id} Starting chain after making a snapshot")
 
         :ok = wait_started(config, state)
+
+        if pid = Map.get(config, :notify_pid) do
+          send(pid, %Notification{id: id, event: :snapshot_taken, data: %{path_to: path_to}})
+        end
+
         # Returning spanshot details
         {:reply, {:ok, path_to}, %{state | port: port}}
 
@@ -103,6 +109,15 @@ defmodule Chain.EVM.Implementation.Ganache do
 
         :ok = wait_started(config, state)
         Logger.debug("#{id} Chain restored snapshot from #{path_from}")
+
+        if pid = Map.get(config, :notify_pid) do
+          send(pid, %Notification{
+            id: id,
+            event: :snapshot_reverted,
+            data: %{path_from: path_from}
+          })
+        end
+
         # Returning spanshot details
         {:reply, :ok, %{state | port: port}}
     end

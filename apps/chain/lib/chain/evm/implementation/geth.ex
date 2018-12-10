@@ -5,6 +5,7 @@ defmodule Chain.EVM.Implementation.Geth do
   use Chain.EVM
 
   alias Chain.EVM.Config
+  alias Chain.EVM.Notification
   alias Chain.EVM.Implementation.Geth.Genesis
 
   require Logger
@@ -54,34 +55,6 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def handle_started(config, state) do
-    %{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port} = config
-    Logger.debug("#{id}: Everything loaded...")
-    # If needed to send process details somewhere - go ahead
-    unless is_nil(pid) do
-      # Running http requests in async mode to not block scheduler
-      [{:ok, address}, {:ok, accounts}] =
-        [
-          Task.async(fn -> exec_command(http_port, "eth_coinbase") end),
-          Task.async(fn -> exec_command(http_port, "eth_accounts") end)
-        ]
-        |> Enum.map(&Task.await/1)
-
-      result = %Chain.EVM.Process{
-        id: id,
-        coinbase: address,
-        accounts: accounts,
-        rpc_url: "http://localhost:#{http_port}",
-        ws_url: "ws://localhost:#{ws_port}"
-      }
-
-      send(pid, {:started, result})
-    end
-
-    {:ok, state}
-  end
-
-  @impl Chain.EVM
   def start_mine(%Config{http_port: http_port}, state) do
     {:ok, nil} = exec_command(http_port, "miner_start", [1])
     {:ok, %{state | mining: true}}
@@ -120,8 +93,13 @@ defmodule Chain.EVM.Implementation.Geth do
         Logger.debug("#{id} Starting chain after making a snapshot")
 
         :ok = wait_started(config, state)
+
+        if pid = Map.get(config, :notify_pid) do
+          send(pid, %Notification{id: id, event: :snapshot_taken, data: %{path_to: path_to}})
+        end
+
         # Returning spanshot details
-        {:reply, {:ok, path_to}, %{state | port: port, mining: Map.get(config, :automine, false)}}
+        {:reply, {:ok, path_to}, %{state | port: port}}
 
       _ ->
         {:reply, {:error, "#{path_to} is not empty"}, state}
@@ -154,6 +132,15 @@ defmodule Chain.EVM.Implementation.Geth do
 
         :ok = wait_started(config, state)
         Logger.debug("#{id} Chain restored snapshot from #{path_from}")
+
+        if pid = Map.get(config, :notify_pid) do
+          send(pid, %Notification{
+            id: id,
+            event: :snapshot_reverted,
+            data: %{path_from: path_from}
+          })
+        end
+
         # Returning spanshot details
         {:reply, :ok, %{state | port: port}}
     end

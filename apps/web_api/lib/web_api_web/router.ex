@@ -6,7 +6,7 @@ defmodule WebApiWeb.Router do
   end
 
   scope "/", WebApiWeb do
-    match :*, "/", IndexController, :index 
+    match :*, "/", IndexController, :index
   end
 
   scope "/api", WebApiWeb do

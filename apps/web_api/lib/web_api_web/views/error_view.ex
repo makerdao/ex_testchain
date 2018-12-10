@@ -6,6 +6,7 @@ defmodule WebApiWeb.ErrorView do
   def render("500.json", %{message: message}) do
     %{errors: %{detail: message}}
   end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal Server Error"}}
   end

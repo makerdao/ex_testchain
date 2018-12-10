@@ -6,6 +6,7 @@ defmodule Chain.EVM do
   require Logger
 
   alias Chain.EVM.Config
+  alias Chain.EVM.Notification
 
   # Amount of ms the server is allowed to spend initializing or it will be terminated
   @timeout Application.get_env(:chain, :kill_timeout, 60_000)
@@ -254,7 +255,15 @@ defmodule Chain.EVM do
 
         if pid = Map.get(config, :notify_pid) do
           Logger.debug("#{config.id} Sending notification to #{inspect(pid)}")
-          send(pid, {:error, "#{config.id} chain terminated with status #{status}"})
+
+          send(pid, %Notification{
+            id: config.id,
+            event: :error,
+            data: %{
+              status: status,
+              message: "#{config.id} chain terminated with status #{status}"
+            }
+          })
         end
 
         case started do
@@ -377,6 +386,12 @@ defmodule Chain.EVM do
             %State{config: config, internal_state: internal_state} = state
           ) do
         Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
+
+        # If exit reason is normal we could send notification that evm stopped
+        if pid = Map.get(config, :notify_pid) && reason == :normal do
+          send(pid, %Notification{id: config.id, event: :stopped})
+        end
+
         # I have to make terminate function with 3 params. ptherwise it might override 
         # `GenServer.terminate/2` 
         terminate(config.id, config, internal_state)
@@ -427,7 +442,7 @@ defmodule Chain.EVM do
           ws_url: "ws://localhost:#{ws_port}"
         }
 
-        send(pid, process)
+        send(pid, %Notification{id: id, event: :started, data: process})
         :ok
       end
 

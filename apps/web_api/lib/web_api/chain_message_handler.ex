@@ -13,12 +13,12 @@ defmodule WebApi.ChainMessageHandler do
   def init(_), do: {:ok, []}
 
   def handle_info({:started, data}, state) do
-    IO.inspect data
+    IO.inspect(data)
     {:noreply, state}
   end
 
   def handle_info(msg, state) do
-    IO.inspect msg
+    IO.inspect(msg)
     {:noreply, state}
   end
 end
