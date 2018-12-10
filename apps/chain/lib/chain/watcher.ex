@@ -19,6 +19,15 @@ defmodule Chain.Watcher do
   `{pid, http_port, ws_port, db_path}` 
 
   Where `pid` - is chain process id that will be watched by `Chain.Watcher` module
+
+  Another idea after the watcher is solving restart on snapshot issue. 
+  For example if we have one chain running on port `8545`. And try to make a snapshot,
+  we have to stop chain, copy all files to snapshot folder and start chain again.
+  But there might be a situation when another chain will start to start on same port
+  and because 1st one will be stopped 2nd one will occupy port. 
+  So 1st chain wouldn't be able to start after snapshot.
+
+  Same situation might be for path.
   """
   use GenServer
 
