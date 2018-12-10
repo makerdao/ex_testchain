@@ -5,6 +5,10 @@ defmodule WebApiWeb.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/", WebApiWeb do
+    match :*, "/", IndexController, :index 
+  end
+
   scope "/api", WebApiWeb do
     pipe_through :api
   end

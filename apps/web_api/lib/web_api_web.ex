@@ -20,23 +20,25 @@ defmodule WebApiWeb do
   def controller do
     quote do
       use Phoenix.Controller, namespace: WebApiWeb
+
       import Plug.Conn
-      import WebApiWeb.Router.Helpers
       import WebApiWeb.Gettext
+      alias WebApiWeb.Router.Helpers, as: Routes
     end
   end
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/web_api_web/templates",
-                        namespace: WebApiWeb
+      use Phoenix.View,
+        root: "lib/web_api_web/templates",
+        namespace: WebApiWeb
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
+      import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
 
-      import WebApiWeb.Router.Helpers
       import WebApiWeb.ErrorHelpers
       import WebApiWeb.Gettext
+      alias WebApiWeb.Router.Helpers, as: Routes
     end
   end
 
