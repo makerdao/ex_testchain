@@ -42,7 +42,10 @@ defmodule Chain do
   """
   @spec start(Chain.EVM.Config.t()) :: {:ok, Chain.evm_id()} | {:error, term()}
   def start(%Config{type: :geth} = config), do: start_evm(Geth, config)
-  def start(%Config{type: :ganache} = config), do: start_evm(Ganache, config)
+
+  def start(%Config{type: :ganache, http_port: port} = config),
+    do: start_evm(Ganache, %Config{config | ws_port: port})
+
   def start(%Config{type: _}), do: {:error, :unsuported_evm_type}
 
   @doc """
