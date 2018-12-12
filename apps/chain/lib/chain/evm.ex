@@ -410,6 +410,9 @@ defmodule Chain.EVM do
               Logger.debug("#{config.id}: Cleaned path after termination #{db_path}")
           end
         end
+
+        # Returning termination result
+        res
       end
 
       ######
