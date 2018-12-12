@@ -28,6 +28,7 @@ Configuration consist of this properties:
  - `accounts` - Amount of accounts need to be created on chain/evm start (Default: `1`)
  - `output` - Path to output file where all chain/evm logs will be written
  - `notify_pid` - Internal Erlang Process ID that should be notified on chain/evm event.
+ - `clean_on_stop` - Clean up `db_path` after chain is stopped. (Default: `false`)
  
 Example: 
 ```elixir

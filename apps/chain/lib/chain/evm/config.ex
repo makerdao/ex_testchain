@@ -13,6 +13,7 @@ defmodule Chain.EVM.Config do
   - `accounts` - How many accoutn should be created on start (Default: `1`)
   - `notify_pid` - Internal process id that will be notified on some chain events
   - `output` - Path to logs file. If empty string passing logs will be stored into `db_path <> /out.log`. To disable logging pass `nil`
+  - `clean_on_stop` - Clean up `db_path` after chain is stopped. (Default: `false`)
 
   """
   @type t :: %__MODULE__{
@@ -25,7 +26,8 @@ defmodule Chain.EVM.Config do
           block_mine_time: non_neg_integer(),
           accounts: non_neg_integer(),
           output: binary,
-          notify_pid: nil | pid()
+          notify_pid: nil | pid(),
+          clean_on_stop: boolean()
         }
 
   defstruct type: :ganache,
@@ -37,5 +39,6 @@ defmodule Chain.EVM.Config do
             block_mine_time: 0,
             accounts: 1,
             output: "",
-            notify_pid: nil
+            notify_pid: nil,
+            clean_on_stop: false
 end

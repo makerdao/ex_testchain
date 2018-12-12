@@ -388,13 +388,28 @@ defmodule Chain.EVM do
         Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
 
         # If exit reason is normal we could send notification that evm stopped
-        if pid = Map.get(config, :notify_pid) && reason == :normal do
+        if (pid = Map.get(config, :notify_pid)) && reason == :normal do
           send(pid, %Notification{id: config.id, event: :stopped})
         end
 
         # I have to make terminate function with 3 params. ptherwise it might override 
         # `GenServer.terminate/2` 
-        terminate(config.id, config, internal_state)
+        res = terminate(config.id, config, internal_state)
+
+        # Check and clean path for all chains
+        if Map.get(config, :clean_on_stop) do
+          db_path = Map.get(config, :db_path)
+
+          case File.rm_rf(db_path) do
+            {:error, err} ->
+              Logger.error(
+                "#{config.id}: Failed to clean up #{db_path} with error: #{inspect(err)}"
+              )
+
+            _ ->
+              Logger.debug("#{config.id}: Cleaned path after termination #{db_path}")
+          end
+        end
       end
 
       ######
