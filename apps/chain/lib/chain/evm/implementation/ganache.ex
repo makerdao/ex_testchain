@@ -210,20 +210,14 @@ defmodule Chain.EVM.Implementation.Ganache do
     |> JsonRpc.call(command, params)
   end
 
-  # Get path for logging
-  defp get_output(""), do: "--quiet 2>/dev/null"
-  # We don't need to pipe stream because of we wrapped everything using `wrapper.sh` file
-  defp get_output(path) when is_binary(path), do: "--verbose 2>/dev/null"
-  # Ignore in any other case
-  defp get_output(_), do: "--quiet 2>/dev/null"
-
   # Build command for starting ganache-cli
   defp build_command(%Config{
          db_path: db_path,
          network_id: network_id,
          http_port: http_port,
          accounts: accounts,
-         output: output
+         output: output,
+         block_mine_time: block_mine_time
        }) do
     [
       # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
@@ -235,10 +229,34 @@ defmodule Chain.EVM.Implementation.Ganache do
       "-p #{http_port}",
       "-a #{accounts}",
       "--db #{db_path} ",
+      get_block_mine_time(block_mine_time),
       get_output(output)
     ]
     |> Enum.join(" ")
   end
+
+  #####
+  # List of functions generating CLI options
+  #####
+
+  # get params for block mining period
+  defp get_block_mine_time(0), do: ""
+
+  defp get_block_mine_time(time) when is_integer(time) and time > 0,
+    do: "--blockTime #{time}"
+
+  defp get_block_mine_time(_), do: ""
+
+  # Get path for logging
+  defp get_output(""), do: "--quiet 2>/dev/null"
+  # We don't need to pipe stream because of we wrapped everything using `wrapper.sh` file
+  defp get_output(path) when is_binary(path), do: "--verbose 2>/dev/null"
+  # Ignore in any other case
+  defp get_output(_), do: "--quiet 2>/dev/null"
+
+  #####
+  # End of list 
+  #####
 
   # Opens file if it should be opened to store logs from ganache
   # Function should get `Chain.EVM.Config.t()` as input

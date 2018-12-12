@@ -24,7 +24,7 @@ Configuration consist of this properties:
  - `http_port` - Default HTTP JSONRPC port. (Default: `8545`)
  - `ws_port` - Default WS JSONRPC port (Default: `8546`) **For ganache it will be ignored** (`http_port` will be used)
  - `network_id` - Network ID for your chain/evm. (Default: `999`)
- - `automine` - Enable/disable automining. (Default: `false`)
+ - `block_mine_time` - Block period to use in developer mode (0 = mine only if transaction pending) (default: 0)
  - `accounts` - Amount of accounts need to be created on chain/evm start (Default: `1`)
  - `output` - Path to output file where all chain/evm logs will be written
  - `notify_pid` - Internal Erlang Process ID that should be notified on chain/evm event.

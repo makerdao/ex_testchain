@@ -277,24 +277,6 @@ defmodule Chain.EVM.Implementation.Geth do
     |> Genesis.write(db_path)
   end
 
-  # get first created account. it will be coinbase
-  defp get_etherbase([]), do: ""
-  defp get_etherbase([{account, _} | _]), do: "--etherbase=\"0x#{account}\""
-  defp get_etherbase([account | _]) when is_binary(account), do: "--etherbase=\"0x#{account}\""
-
-  # combine list of accounts to unlock `--unlock 0x....,0x.....`
-  defp get_unlock([]), do: ""
-
-  defp get_unlock(list) do
-    "--unlock=\"" <> Enum.join(list, "\",\"") <> "\""
-  end
-
-  # Get path for logging
-  defp get_output(""), do: "2>> /dev/null"
-  defp get_output(path) when is_binary(path), do: "2>> #{path}"
-  # Ignore in any other case
-  defp get_output(_), do: "2>> /dev/null"
-
   # Build argument list for new geth node. See `Chain.EVM.Geth.start_node/1`
   defp build_command(
          %Config{
@@ -302,7 +284,8 @@ defmodule Chain.EVM.Implementation.Geth do
            network_id: network_id,
            http_port: http_port,
            ws_port: ws_port,
-           output: output
+           output: output,
+           block_mine_time: block_mine_time
          },
          accounts
        ) do
@@ -311,6 +294,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--dev",
       "--datadir",
       db_path,
+      get_block_mine_time(block_mine_time),
       "--networkid",
       network_id |> to_string(),
       "--ipcdisable",
@@ -335,6 +319,40 @@ defmodule Chain.EVM.Implementation.Geth do
     ]
     |> Enum.join(" ")
   end
+
+  #####
+  # List of functions generating CLI options
+  #####
+
+  # get params for block mining period
+  defp get_block_mine_time(0), do: ""
+
+  defp get_block_mine_time(time) when is_integer(time) and time > 0,
+    do: "--dev.period=\"#{time}\""
+
+  defp get_block_mine_time(_), do: ""
+
+  # get first created account. it will be coinbase
+  defp get_etherbase([]), do: ""
+  defp get_etherbase([{account, _} | _]), do: "--etherbase=\"0x#{account}\""
+  defp get_etherbase([account | _]) when is_binary(account), do: "--etherbase=\"0x#{account}\""
+
+  # combine list of accounts to unlock `--unlock 0x....,0x.....`
+  defp get_unlock([]), do: ""
+
+  defp get_unlock(list) do
+    "--unlock=\"" <> Enum.join(list, "\",\"") <> "\""
+  end
+
+  # Get path for logging
+  defp get_output(""), do: "2>> /dev/null"
+  defp get_output(path) when is_binary(path), do: "2>> #{path}"
+  # Ignore in any other case
+  defp get_output(_), do: "2>> /dev/null"
+
+  #####
+  # End of list 
+  #####
 
   # Send command to port
   # This action will send command directly to started node console.
