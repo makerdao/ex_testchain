@@ -86,5 +86,6 @@ ENV REPLACE_OS_VARS=true \
     PORT=${PORT}
 
 COPY --from=builder /opt/built .
+COPY ./priv/presets/geth /opt/built/priv/presets/geth
 
 CMD trap 'exit' INT; /opt/app/bin/${APP_NAME} console

@@ -24,4 +24,9 @@ config :chain, base_path: "/tmp/chains"
 # chain id will be added as a target folder under this path
 config :chain, snapshot_base_path: "/tmp/snapshots"
 
+# Default location of account password file. 
+# For dev env it will be in related to project root. In Docker it will be replaced with 
+# file from `rel/config/config.exs`
+config :chain, geth_password_file: Path.absname("priv/presets/geth/account_password")
+
 # config :logger, level: :info

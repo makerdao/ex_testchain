@@ -10,14 +10,8 @@ defmodule Chain.EVM.Implementation.Geth do
 
   require Logger
 
-  @password_file Path.absname("../../priv/presets/geth/account_password")
-
   @impl Chain.EVM
   def start(%Config{id: id, db_path: db_path} = config) do
-    IO.inspect(Path.absname("."))
-    IO.inspect(Path.absname("../../priv/presets/geth/account_password"))
-
-    
     # We have to create accounts only if we don't have any already
     accounts =
       case File.ls(db_path) do
@@ -161,7 +155,7 @@ defmodule Chain.EVM.Implementation.Geth do
     :ok
   end
   def terminate(id, config, nil) do
-    Logger.error("#{id} could not start process... Something wrong. Config: #{config}")
+    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok
   end
 
@@ -186,7 +180,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @spec create_account(binary) :: {:ok, term()} | {:error, term()}
   def create_account(db_path) do
     %{status: 0, err: nil, out: <<"Address: {", address::binary-size(40), _::binary>>} =
-      "#{executable!()} account new --datadir #{db_path} --password #{@password_file} 2>/dev/null"
+      "#{executable!()} account new --datadir #{db_path} --password #{password_file()} 2>/dev/null"
       |> Porcelain.shell()
 
     address
@@ -323,7 +317,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--targetgaslimit=\"9000000000000\"",
       # "--mine",
       # "--minerthreads=1",
-      "--password=#{@password_file}",
+      "--password=#{password_file()}",
       get_etherbase(accounts),
       get_unlock(accounts),
       "console",
@@ -365,6 +359,9 @@ defmodule Chain.EVM.Implementation.Geth do
   #####
   # End of list 
   #####
+
+  # Have to return pasword file for accounts
+  defp password_file(), do: Application.get_env(:chain, :geth_password_file)
 
   # Send command to port
   # This action will send command directly to started node console.
