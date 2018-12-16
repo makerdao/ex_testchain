@@ -14,6 +14,10 @@ defmodule Chain.EVM.Implementation.Geth do
 
   @impl Chain.EVM
   def start(%Config{id: id, db_path: db_path} = config) do
+    IO.inspect(Path.absname("."))
+    IO.inspect(Path.absname("../../priv/presets/geth/account_password"))
+
+    
     # We have to create accounts only if we don't have any already
     accounts =
       case File.ls(db_path) do
@@ -154,6 +158,10 @@ defmodule Chain.EVM.Implementation.Geth do
   def terminate(id, _config, %{port: port} = state) do
     Logger.info("#{id}: Terminating... #{inspect(state)}")
     Porcelain.Process.stop(port)
+    :ok
+  end
+  def terminate(id, config, nil) do
+    Logger.error("#{id} could not start process... Something wrong. Config: #{config}")
     :ok
   end
 

@@ -6,3 +6,4 @@ Dockerfile
 Makefile
 README*
 test/
+priv/presets/ganache/node_modules
