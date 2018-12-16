@@ -28,9 +28,9 @@ defmodule Chain.EVM.Notification do
   @type t :: %__MODULE__{
           id: Chain.evm_id(),
           event: Chain.EVM.Notification.event(),
-          data: term()
+          data: map()
         }
 
   @enforce_keys [:id, :event]
-  defstruct id: nil, event: nil, data: nil
+  defstruct id: nil, event: nil, data: %{}
 end

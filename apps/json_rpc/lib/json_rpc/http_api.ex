@@ -4,9 +4,17 @@ defmodule JsonRpc.HttpApi do
   require Logger
 
   @doc false
+  def process_response_body(""), do: %{}
+
   def process_response_body(body) do
-    body
-    |> Poison.decode!(keys: :atoms)
+    case Poison.decode(body, keys: :atoms) do
+      {:ok, parsed} ->
+        parsed
+
+      {:error, err} ->
+        Logger.error("Error parsing response #{inspect(body)} with error: #{inspect(err)}")
+        body
+    end
   end
 
   @doc """

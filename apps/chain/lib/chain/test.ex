@@ -11,7 +11,8 @@ defmodule Chain.Test do
       type: type,
       db_path: @base_path,
       output: @base_path <> "/evm.out",
-      notify_pid: self()
+      notify_pid: self(),
+      clean_on_stop: true
     }
   end
 end

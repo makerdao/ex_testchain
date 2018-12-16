@@ -50,7 +50,10 @@ defmodule Chain.EVM.Implementation.Geth do
 
   @impl Chain.EVM
   def stop(_, %{port: port} = state) do
-    send_command(port, "exit")
+    # send_command(port, "exit")
+    # Have to stop process usign sigterm
+    # otherwise it return bad exit code
+    true = Porcelain.Process.stop(port)
     {:ok, state}
   end
 
@@ -77,6 +80,7 @@ defmodule Chain.EVM.Implementation.Geth do
     db_path = Map.get(config, :db_path)
 
     unless File.dir?(path_to) do
+      Logger.debug("#{id}: Creating new path for snapshot #{path_to}")
       :ok = File.mkdir_p!(path_to)
     end
 

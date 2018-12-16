@@ -56,6 +56,12 @@ defmodule Chain do
     do: GenServer.cast(get_pid!(id), :stop)
 
   @doc """
+  Check if chain with given id exist
+  """
+  @spec exist?(Chain.evm_id()) :: boolean()
+  def exist?(id), do: nil != get_pid(id)
+
+  @doc """
   Generate uniq ID
   """
   @spec unique_id() :: Chain.evm_id()

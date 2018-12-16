@@ -2,7 +2,6 @@ defmodule WebApiWeb.ApiChannel do
   use Phoenix.Channel
 
   alias Chain.EVM.Config
-  alias WebApi.ChainHelper
   alias WebApi.ChainMessageHandler
 
   def join(_, _, socket), do: {:ok, %{message: "Welcome to ExTestchain !"}, socket}
@@ -23,19 +22,14 @@ defmodule WebApiWeb.ApiChannel do
       notify_pid: ChainMessageHandler
     }
 
-    ChainMessageHandler.notify_on(:started, self(), socket_ref(socket))
+    case Chain.start(config) do
+      {:ok, id} ->
+        # Subscribing to notification :started and sending response to socket
+        # ChainMessageHandler.notify_on(id, :started, self(), socket_ref(socket))
+        {:reply, {:ok, %{id: id}}, socket}
 
-    {:ok, id} = Chain.start(config)
-    {:reply, {:ok, %{id: id}}, socket}
-  end
-
-  def handle_info({:started, data, ref}, socket) do
-    reply(ref, {:started, Map.from_struct(data)})
-    {:noreply, socket}
-  end
-
-  def handle_info(msg, socket) do
-    IO.inspect(msg)
-    {:noreply, socket}
+      {:error, err} ->
+        {:reply, {:error, %{message: err}}, socket}
+    end
   end
 end

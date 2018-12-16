@@ -6,43 +6,56 @@ defmodule WebApi.ChainMessageHandler do
   """
   use GenServer
 
+  require Logger
   alias Chain.EVM.Notification
 
-  @doc false
-  def start_link(_), do: GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+  @table :listeners
 
   @doc false
-  def init(_), do: {:ok, %{}}
+  def start_link(_), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+  @doc false
+  def init(_) do
+    :ets.new(@table, [:duplicate_bag, :protected, :named_table])
+    {:ok, []}
+  end
 
   # Add new event listener with socket_ref
-  def handle_cast({:add, event, pid, socket_ref}, state) do
-    list = Map.get(state, event, [])
-
-    case Enum.member?(list, pid) do
-      true ->
-        {:noreply, state}
-
-      false ->
-        new_state = Map.put(state, event, list ++ [{pid, socket_ref}])
-        {:noreply, new_state}
-    end
+  def handle_cast({:add, id, event, pid, socket_ref}, state) do
+    true = :ets.insert(@table, {id, event, pid, socket_ref})
+    {:noreply, state}
   end
 
   # Handle Notification from chain
   def handle_info(%Notification{id: id, event: event, data: data}, state) do
     # Check if we have direct requests for handler
-    if (list = Map.get(state, event, [])) && list != [] do
-      list
-      |> Enum.each(fn {pid, socket_ref} -> send(pid, {event, data, socket_ref}) end)
-    end
+    # Note :ets will return result as [[pid, socket_ref]]
+    :ets.match(@table, {id, event, :"$1", :"$2"})
+    |> Enum.each(fn [pid, socket_ref] ->
+      send(pid, {event, data, socket_ref})
+      # removing from list
+      :ets.delete_object(@table, {id, event, pid, socket_ref})
+    end)
 
     # Broadcasting event to direct channel
-    Phoenix.Endpoint.broadcast("chain:#{id}", event, data)
+    response =
+      case data do
+        %_{} ->
+          Map.from_struct(data)
+
+        %{} ->
+          data
+
+        other ->
+          %{data: other}
+      end
+
+    WebApiWeb.Endpoint.broadcast("chain:#{id}", to_string(event), response)
     {:noreply, state}
   end
 
   def handle_info(msg, state) do
-    IO.inspect(msg)
+    Logger.debug("Unknown message: #{inspect(msg)}")
     {:noreply, state}
   end
 
@@ -52,7 +65,12 @@ defmodule WebApi.ChainMessageHandler do
   with such content: `{event, data, socket_ref}`
   So you have to handle this message !
   """
-  @spec notify_on(Chain.EVM.Notification.event(), pid, Phoenix.Channel.socket_ref()) :: :ok
-  def notify_on(event, pid, socket_ref),
-    do: GenServer.cast(__MODULE__, {:add, event, pid, socket_ref})
+  @spec notify_on(
+          Chain.evm_id(),
+          Chain.EVM.Notification.event(),
+          pid,
+          Phoenix.Channel.socket_ref()
+        ) :: :ok
+  def notify_on(id, event, pid, socket_ref),
+    do: GenServer.cast(__MODULE__, {:add, id, event, pid, socket_ref})
 end

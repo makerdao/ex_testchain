@@ -288,6 +288,7 @@ defmodule Chain.EVM do
           Application.get_env(:chain, :snapshot_base_path)
           |> Path.expand()
           |> Path.join(id)
+          |> Path.join(Chain.unique_id())
 
         # Calling correct function
         handle_call({:take_snapshot, path}, from, state)
