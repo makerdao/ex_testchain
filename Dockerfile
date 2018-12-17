@@ -12,11 +12,11 @@ ARG APP_VSN=0.1.0
 # The environment to build with
 ARG MIX_ENV=prod
 # Set this to true if this release is not a Phoenix app
-ARG SKIP_GANACHE=true
+ARG SKIP_GANACHE=false
 # If you are using an umbrella project, you can change this
 # argument to the directory the Phoenix app is in so that the assets
 # can be built
-ARG GANACHE_SUBDIR=priv/presets/ganache
+ARG GANACHE_SUBDIR=priv/presets/ganache-cli
 
 ENV SKIP_GANACHE=${SKIP_GANACHE} \
     APP_NAME=${APP_NAME} \
@@ -31,7 +31,10 @@ RUN apk update && \
   apk upgrade --no-cache && \
   apk add --no-cache \
     nodejs \
+    npm \
     git \
+    python \
+    bash \
     build-base && \
   mix local.rebar --force && \
   mix local.hex --force
@@ -41,14 +44,29 @@ COPY . .
 
 RUN mix do deps.get, deps.compile, compile
 
-# This step builds assets for the Phoenix app (if there is one)
-# If you aren't building a Phoenix app, pass `--build-arg SKIP_PHOENIX=true`
-# This is mostly here for demonstration purposes
-RUN if [ ! "$SKIP_GANACHE" = "true" ]; then \
+RUN \
+  git clone https://github.com/trufflesuite/ganache-cli.git ${GANACHE_SUBDIR} && \
   cd ${GANACHE_SUBDIR} && \
   npm install && \
-  cd -; \
-fi
+  ./node_modules/.bin/webpack-cli --config ./webpack/webpack.docker.config.js && \
+  # Copy built files
+  mkdir -p /opt/ganache && \
+  mkdir -p /opt/ganache/node_modules/scrypt/build/Release && \
+  mv ./node_modules/scrypt/build/Release /opt/ganache/node_modules/scrypt/build/Release/ && \
+  mkdir -p /opt/ganache/node_modules/ganache-core/node_modules/scrypt/build/Release && \
+  mv ./node_modules/ganache-core/node_modules/scrypt/build/Release /opt/ganache/node_modules/ganache-core/node_modules/scrypt/build/Release/ && \
+  mkdir -p /opt/ganache/node_modules/ganache-core/node_modules/secp256k1/build/Release && \
+  mv ./node_modules/ganache-core/node_modules/secp256k1/build/Release /opt/ganache/node_modules/ganache-core/node_modules/secp256k1/build/Release/ && \
+  mkdir -p /opt/ganache/node_modules/ganache-core/node_modules/keccak/build/Release && \
+  mv ./node_modules/ganache-core/node_modules/keccak/build/Release /opt/ganache/node_modules/ganache-core/node_modules/keccak/build/Release && \
+  mkdir -p /opt/ganache/node_modules/sha3/build/Release && \
+  mv ./node_modules/sha3/build/Release /opt/ganache/node_modules/sha3/build/Release && \
+  mkdir -p /opt/ganache/node_modules/ganache-core/node_modules/websocket/build/Release && \
+  mv ./node_modules/ganache-core/node_modules/websocket/build/Release /opt/ganache/node_modules/ganache-core/node_modules/websocket/build/Release && \
+  mv ./build/ganache-core.docker.cli.js /opt/ganache && \
+  mv ./build/ganache-core.docker.cli.js.map /opt/ganache && \
+  ls -l /opt/ganache && \
+  cd -
 
 RUN \
   mkdir -p /opt/built && \
@@ -79,13 +97,17 @@ RUN apk update && \
     apk add --no-cache \
       bash \
       openssl \
-      geth
+      geth \ 
+      nodejs
 
 ENV REPLACE_OS_VARS=true \
     APP_NAME=${APP_NAME} \
     PORT=${PORT}
 
 COPY --from=builder /opt/built .
+COPY --from=builder /opt/ganache /opt/built/priv/presets/ganache/
+
 COPY ./priv/presets/geth /opt/built/priv/presets/geth
+COPY ./priv/presets/ganache/wrapper.sh /opt/built/priv/presets/ganache
 
 CMD trap 'exit' INT; /opt/app/bin/${APP_NAME} console

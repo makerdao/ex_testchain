@@ -2,8 +2,11 @@ _build/
 deps/
 .git/
 .gitignore
+.gitmodules
 Dockerfile
 Makefile
 README*
 test/
+node_modules
 priv/presets/ganache/node_modules
+priv/presets/ganache-cli

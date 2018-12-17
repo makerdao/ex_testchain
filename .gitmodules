@@ -1,0 +1,3 @@
+[submodule "priv/presets/ganache-cli"]
+	path = priv/presets/ganache-cli
+	url = https://github.com/trufflesuite/ganache-cli.git

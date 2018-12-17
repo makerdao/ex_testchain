@@ -7,12 +7,9 @@ defmodule Chain.EVM.Implementation.Ganache do
   alias Chain.EVM.Config
   alias Chain.EVM.Notification
 
-  @ganache_cli Path.absname("../../priv/presets/ganache/node_modules/.bin/ganache-cli")
-  @wrapper_file Path.absname("../../priv/presets/ganache/wrapper.sh")
-
   @impl Chain.EVM
   def start(%Config{id: id} = config) do
-    unless File.exists?(@ganache_cli) do
+    unless File.exists?(executable()) do
       raise "No `ganache-cli` installed. Please run `cd priv/presets/ganache && npm install`"
     end
 
@@ -178,7 +175,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def version() do
-    %{err: nil, status: 0, out: out} = Porcelain.shell("#{@ganache_cli} --version")
+    %{err: nil, status: 0, out: out} = Porcelain.shell("#{executable()} --version")
     out
   end
 
@@ -219,11 +216,19 @@ defmodule Chain.EVM.Implementation.Ganache do
          output: output,
          block_mine_time: block_mine_time
        }) do
+    wrapper_file =
+      :chain
+      |> Application.get_env(:ganache_wrapper_file)
+      |> Path.absname()
+
+    unless File.exists?(wrapper_file) do
+      raise "No wrapper file for ganache-cli"
+    end
     [
       # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
       # Otherwise after application will be terminated - ganache still will be running
-      @wrapper_file,
-      @ganache_cli,
+      wrapper_file,
+      executable(),
       "--noVMErrorsOnRPCResponse",
       "-i #{network_id}",
       "-p #{http_port}",
@@ -257,6 +262,10 @@ defmodule Chain.EVM.Implementation.Ganache do
   #####
   # End of list 
   #####
+
+  defp executable() do
+    Application.get_env(:chain, :ganache_executable)
+  end
 
   # Opens file if it should be opened to store logs from ganache
   # Function should get `Chain.EVM.Config.t()` as input

@@ -29,4 +29,7 @@ config :chain, snapshot_base_path: "/tmp/snapshots"
 # file from `rel/config/config.exs`
 config :chain, geth_password_file: Path.absname("priv/presets/geth/account_password")
 
+config :chain, ganache_executable: Path.absname("priv/presets/ganache-cli/cli.js")
+config :chain, ganache_wrapper_file: Path.absname("priv/presets/ganache/wrapper.sh")
+
 # config :logger, level: :info
