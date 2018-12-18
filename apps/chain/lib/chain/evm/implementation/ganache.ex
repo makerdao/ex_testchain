@@ -9,14 +9,11 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def start(%Config{id: id} = config) do
-    unless File.exists?(executable()) do
-      raise "No `ganache-cli` installed. Please run `cd priv/presets/ganache && npm install`"
-    end
+    Logger.debug("#{id}: Starting ganache-cli")
+    %{err: nil} = port = start_node(config)
 
     file = open_log_file(config)
 
-    Logger.debug("#{id}: Starting ganache-cli")
-    %{err: nil} = port = start_node(config)
     {:ok, %{port: port, mining: true, log_file: file}}
   end
 
@@ -172,6 +169,10 @@ defmodule Chain.EVM.Implementation.Ganache do
 
     :ok
   end
+  def terminate(id, config, nil) do
+    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
+    :ok
+  end
 
   @impl Chain.EVM
   def version() do
@@ -222,7 +223,7 @@ defmodule Chain.EVM.Implementation.Ganache do
       |> Path.absname()
 
     unless File.exists?(wrapper_file) do
-      raise "No wrapper file for ganache-cli"
+      raise "No wrapper file for ganache-cli: #{wrapper_file}"
     end
     [
       # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
@@ -263,9 +264,7 @@ defmodule Chain.EVM.Implementation.Ganache do
   # End of list 
   #####
 
-  defp executable() do
-    Application.get_env(:chain, :ganache_executable)
-  end
+  defp executable(), do: Application.get_env(:chain, :ganache_executable)
 
   # Opens file if it should be opened to store logs from ganache
   # Function should get `Chain.EVM.Config.t()` as input

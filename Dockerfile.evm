@@ -1,4 +1,6 @@
-FROM alpine:edge as builder
+ARG ALPINE_VERSION=edge
+
+FROM alpine:${ALPINE_VERSION} as builder
 
 ARG GANACHE_SUBDIR=./priv/presets/ganache-cli
 
@@ -11,7 +13,8 @@ RUN npm install
 COPY ${GANACHE_SUBDIR} .
 RUN npx webpack-cli --config ./webpack/webpack.docker.config.js
 
-FROM alpine:edge as runtime
+# Release image
+FROM alpine:${ALPINE_VERSION} as runtime
 
 ENV VERSION=v10.14.1 \
     DOCKER=true
