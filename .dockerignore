@@ -9,4 +9,4 @@ README*
 test/
 node_modules
 priv/presets/ganache/node_modules
-priv/presets/ganache-cli
+priv/presets/ganache-cli/node_modules
