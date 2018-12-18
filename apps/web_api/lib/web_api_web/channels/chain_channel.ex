@@ -2,7 +2,7 @@ defmodule WebApiWeb.ChainChannel do
   use Phoenix.Channel, log_join: false, log_handle_in: :debug
 
   # Handle someone joined chain
-  def join("chain:" <> chain_id, _, socket) do
+  def join("chain:" <> _chain_id, _, socket) do
     # case Chain.exist?(chain_id) do
     #   true ->
     #     {:ok, socket}

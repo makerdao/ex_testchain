@@ -384,13 +384,23 @@ defmodule Chain.EVM do
       @doc false
       def terminate(
             reason,
-            %State{config: config, internal_state: internal_state} = state
+            %State{config: config, started: started, internal_state: internal_state} = state
           ) do
         Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
 
         # If exit reason is normal we could send notification that evm stopped
-        if (pid = Map.get(config, :notify_pid)) && reason == :normal do
-          send(pid, %Notification{id: config.id, event: :stopped})
+        if pid = Map.get(config, :notify_pid) do
+          case reason do
+            :normal ->
+              send(pid, %Notification{id: config.id, event: :stopped})
+
+            other ->
+              send(pid, %Notification{
+                id: config.id,
+                event: :error,
+                data: %{message: "#{inspect(other)}"}
+              })
+          end
         end
 
         # I have to make terminate function with 3 params. ptherwise it might override 

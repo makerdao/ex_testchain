@@ -50,6 +50,10 @@ defmodule WebApi.ChainMessageHandler do
           %{data: other}
       end
 
+    if event in [:started, :error] do
+      WebApiWeb.Endpoint.broadcast("api", to_string(event), response)
+    end
+
     WebApiWeb.Endpoint.broadcast("chain:#{id}", to_string(event), response)
     {:noreply, state}
   end
