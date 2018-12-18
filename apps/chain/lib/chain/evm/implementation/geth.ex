@@ -154,6 +154,7 @@ defmodule Chain.EVM.Implementation.Geth do
     Porcelain.Process.stop(port)
     :ok
   end
+
   def terminate(id, config, nil) do
     Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok

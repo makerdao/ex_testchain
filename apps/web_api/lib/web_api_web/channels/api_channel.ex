@@ -1,5 +1,5 @@
 defmodule WebApiWeb.ApiChannel do
-  use Phoenix.Channel
+  use Phoenix.Channel, log_join: false, log_handle_in: :debug
 
   alias Chain.EVM.Config
   alias WebApi.ChainMessageHandler
@@ -11,7 +11,7 @@ defmodule WebApiWeb.ApiChannel do
   """
   def handle_in("start", payload, socket) do
     config = %Config{
-      type: (Map.get(payload, "type") == "geth" && :geth) || :ganache,
+      type: String.to_atom(Map.get(payload, "type", "ganache")),
       id: Map.get(payload, "id"),
       http_port: Map.get(payload, "http_port", 8545),
       ws_port: Map.get(payload, "ws_port", 8546),

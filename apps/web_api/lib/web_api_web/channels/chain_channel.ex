@@ -1,15 +1,16 @@
 defmodule WebApiWeb.ChainChannel do
-  use Phoenix.Channel
+  use Phoenix.Channel, log_join: false, log_handle_in: :debug
 
   # Handle someone joined chain
   def join("chain:" <> chain_id, _, socket) do
-    case Chain.exist?(chain_id) do
-      true ->
-        {:ok, socket}
+    # case Chain.exist?(chain_id) do
+    #   true ->
+    #     {:ok, socket}
 
-      false ->
-        {:error, %{reason: "chain does not exist"}}
-    end
+    #   false ->
+    #     {:error, %{reason: "chain does not exist"}}
+    # end
+    {:ok, socket}
   end
 
   # Stop chain

@@ -169,6 +169,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
     :ok
   end
+
   def terminate(id, config, nil) do
     Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok
@@ -225,6 +226,7 @@ defmodule Chain.EVM.Implementation.Ganache do
     unless File.exists?(wrapper_file) do
       raise "No wrapper file for ganache-cli: #{wrapper_file}"
     end
+
     [
       # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
       # Otherwise after application will be terminated - ganache still will be running

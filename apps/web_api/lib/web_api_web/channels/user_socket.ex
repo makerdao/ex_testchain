@@ -1,5 +1,5 @@
 defmodule WebApiWeb.UserSocket do
-  use Phoenix.Socket
+  use Phoenix.Socket, log: :debug
 
   ## Channels
   channel "*", WebApiWeb.ApiChannel
