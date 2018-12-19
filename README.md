@@ -24,6 +24,18 @@ For NixOS you will also need to install Erlang R21 to make `escript` available
 $ nix-env -iA nixos.erlangR21
 ```
 
+Installing project dependencies is easy:
+```bash
+$ make deps
+```
+
+Will install, compile all elixir dependencies and node.js for ganache
+
+## Docker support
+For people who don't want to install everything on local machine there is Docker image provided. 
+
+All details are [here](./docs/DOCKER_SERVICE.md)
+
 ### Geth
 ExTestchain uses `geth` installed in your system.
 
@@ -34,10 +46,16 @@ After this `geth` should be available in your system.
 ### Ganache
 ExTestchain uses local ganache-cli installation.
 
-Installing ganache locally:
+And `ganache-cli` added as git module to the project and you have to check it out.
+```bash
+$ git submodule init
+$ git submodule update
+```
+
+After fetching it locally you have to install dependencies (if you didn't run `make deps`):
 
 ```bash
-$ cd priv/presets/ganache
+$ cd priv/presets/ganache-cli
 $ npm install
 ```
 
