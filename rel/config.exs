@@ -46,7 +46,7 @@ end
 # when running `mix release`, the first release in the file
 # will be used by default
 
-release :test_chain do
+release :ex_testchain do
   set version: "0.1.0"
   set applications: [
     :runtime_tools,

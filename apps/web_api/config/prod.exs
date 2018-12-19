@@ -12,7 +12,6 @@ use Mix.Config
 config :web_api, WebApiWeb.Endpoint,
   http: [:inet6, port: System.get_env("PORT") || 4000],
   url: [host: "localhost", port: {:system, "PORT"}],
-  cache_static_manifest: "priv/static/cache_manifest.json",
   server: true,
   root: ".",
   version: Application.spec(:phoenix_distillery, :vsn)
@@ -71,4 +70,5 @@ config :logger, level: :info
 
 # Finally import the config/prod.secret.exs which should be versioned
 # separately.
-import_config "prod.secret.exs"
+config :web_api, TestWeb.Endpoint,
+  secret_key_base: "Q+cz0UNO2VUSPUshQP5dz3YK48x1reXY8B94RTB0r+qUwxONsXCunf3ljQhoOvTn"

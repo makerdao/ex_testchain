@@ -1,12 +1,12 @@
 # The version of Alpine to use for the final image
 ARG ALPINE_VERSION=edge
-ARG EVM_IMAGE=ganache:latest
+ARG EVM_IMAGE=ex_evm:latest
 
 FROM alpine:${ALPINE_VERSION} AS builder
 
 # The following are build arguments used to change variable parts of the image.
 # The name of your application/release (required)
-ARG APP_NAME=test_chain
+ARG APP_NAME=ex_testchain
 # The version of the application we are building (required)
 ARG APP_VSN=0.1.0
 # The environment to build with
@@ -55,7 +55,7 @@ FROM ${EVM_IMAGE}
 
 # The name of your application/release (required)
 ARG APP_NAME=${APP_NAME}
-ARG PORT=${PORT}
+ARG PORT=4000
 
 EXPOSE ${PORT}
 EXPOSE 8500-8600

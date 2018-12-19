@@ -1,6 +1,6 @@
-EVM_NAME ?= ganache
+EVM_NAME ?= ex_evm
 EVM_VSN ?= v6.2.4
-APP_NAME ?= test_chain
+APP_NAME ?= ex_testchain
 APP_VSN ?= 0.1.0
 BUILD ?= `git rev-parse --short HEAD`
 ALPINE_VERSION ?= edge
@@ -10,6 +10,13 @@ help:
 	@echo "$(APP_NAME):$(APP_VSN)-$(BUILD)"
 	@perl -nle'print $& if m{^[a-zA-Z_-]+:.*?## .*$$}' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
+
+deps: ## Load all required deps for project
+	@mix do deps.get, deps.compile
+	@cd priv/presets/ganache-cli
+	@npm install --no-package-lock
+	@cd -
+.PHONY: deps
 
 build-evm: ## Build the Docker image for geth/ganache/other evm
 	@docker build -f ./Dockerfile.evm \
@@ -24,6 +31,7 @@ build: ## Build elixir application with testchain and WS API
 		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
 		--build-arg APP_NAME=$(APP_NAME) \
         --build-arg APP_VSN=$(APP_VSN) \
+		--build-arg EVM_IMAGE=$(EVM_NAME):latest \
         -t $(APP_NAME):$(APP_VSN)-$(BUILD) \
         -t $(APP_NAME):latest .	
 .PHONY: build

@@ -9,6 +9,24 @@ By default ExTestchain will be wrapped into Docker image `makerdao/ex_testchain:
 ExTestchain is service that provides you with tools and all required binaries for runnin various EVM chains on your local machine.
 Mainly for testing purposes.
 
+## Building image
+For your joi there is `Makefile` with all required commands.
+
+`make deps` - Will install all dependencies for **LOCAL** (not in docker) environment
+`make build-evm` - Will build required EVM image with `geth` and `ganache`
+`make build` - Will build `ex_testchain` image that you will be able to use locally
+`make run` - Will run image you built locally
+
+`make run` will use this options for your image:
+```bash
+docker run \
+    -v /tmp/chains:/opt/chains \
+    -v /tmp/snapshots:/opt/snapshots \
+    --expose 4000 -p 4000:4000 \
+    --expose 8500-8600 -p 8500-8600:8500-8600 \
+    ex_testchain:latest
+```
+
 ## Installation
 
 You could install it from docker hub using `docker run makerdao/ex_testchain:latest` command.
