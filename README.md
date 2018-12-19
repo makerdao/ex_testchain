@@ -8,6 +8,10 @@ Right now it implements this features:
  - Start/Stop mining process
  - Take/revert snapshot
 
+Other documentation:
+ - [Docker support](./docs/DOCKER_SERVICE.md)
+ - [Websocket API](./docs/WS_API.md)
+
 ## Requirements
 
  - Elixir 1.7+
