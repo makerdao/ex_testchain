@@ -1,0 +1,216 @@
+defmodule Chain.SnapshotManager do
+  @moduledoc """
+  Module that manages snapshoting by copy/paste chain DB folders.
+  It could wrap everything to one archive file
+  """
+
+  use GenServer
+  require Logger
+
+  alias Chain.Snapshot.Details, as: SnapshotDetails
+  alias Porcelain.Result
+
+  # DETS table name
+  @table :snapshots
+
+  @doc false
+  def start_link(_) do
+    unless System.find_executable("tar") do
+      raise "Failed to initialize #{__MODULE__}: No tar executable found in system."
+    end
+
+    path =
+      Application.get_env(:chain, :snapshot_base_path)
+      |> Path.expand()
+
+    unless File.dir?(path) do
+      :ok = File.mkdir_p!(path)
+    end
+
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
+  @doc false
+  def init(:ok) do
+    :dets.open_file(@table, type: :set)
+  end
+
+  @doc false
+  def terminate(_, _) do
+    Logger.debug("#{__MODULE__} terminating... Closing DETS...")
+    :dets.close(@table)
+  end
+
+  @doc """
+  Create a snapshot and store it into local DB (DETS for now)
+  """
+  @spec make_snapshot!(binary, Chain.evm_type(), binary) :: Chain.Snapshot.Details.t()
+  def make_snapshot!(from, chain_type, description \\ "") do
+    Logger.debug("Making snapshot for #{from} with description: #{description}")
+
+    unless File.dir?(from) do
+      raise ArgumentError, message: "path does not exist"
+    end
+
+    id = generate_snapshot_id()
+
+    to =
+      Application.get_env(:chain, :snapshot_base_path)
+      |> Path.expand()
+      |> Path.join("#{id}.tgz")
+
+    if File.exists?(to) do
+      raise ArgumentError, message: "archive #{to} already exist"
+    end
+
+    result =
+      Task.async(__MODULE__, :compress, [from, to])
+      |> Task.await()
+
+    case result do
+      {:ok, _} ->
+        %SnapshotDetails{id: id, path: to, chain: chain_type, description: description}
+
+      {:error, msg} ->
+        raise msg
+    end
+  end
+
+  @doc """
+  Restore snapshot by it's id to given path
+  """
+  @spec restore_snapshot!(binary, binary) :: :ok
+  def restore_snapshot!("", _), do: raise(ArgumentError, message: "Wrong snapshot id passed")
+
+  def restore_snapshot!(_, ""),
+    do: raise(ArgumentError, message: "Wrong snapshot restore path passed")
+
+  def restore_snapshot!(id, to) do
+    unless %SnapshotDetails{path: from} = details(id) do
+      raise ArgumentError, message: "could not load snapshot with id: #{id}"
+    end
+
+    Logger.debug("Restoring snapshot #{id} from #{from} to #{to}")
+
+    unless File.exists?(to) do
+      :ok = File.mkdir_p!(to)
+    end
+
+    result =
+      Task.async(__MODULE__, :extract, [from, to])
+      |> Task.await()
+
+    case result do
+      {:ok, _} ->
+        :ok
+
+      {:error, msg} ->
+        raise msg
+    end
+  end
+
+  @doc """
+  Store new snapshot into local DB
+  """
+  @spec store(Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
+  def store(%SnapshotDetails{id: id, chain: chain} = snapshot),
+    do: :dets.insert(@table, {id, chain, snapshot})
+
+  @doc """
+  Load snapshot details by id
+  """
+  @spec details(binary) :: Chain.Snapshot.Details.t() | nil
+  def details(id) do
+    case :dets.lookup(@table, id) do
+      [] ->
+        nil
+
+      [{^id, _, snapshot}] ->
+        snapshot
+
+      _ ->
+        raise "something wrong with loading snapshot details"
+    end
+  end
+
+  @spec by_chain(Chain.evm_type()) :: [Chain.Snapshot.Details.t()]
+  def by_chain(chain) do
+    :dets.match(@table, {:_, chain, :"$1"})
+    |> Enum.map(fn [snap] -> snap end)
+  end
+
+  @doc """
+  Compress given chain folder to `.tgz` archive
+  Note: it will compress only content of given dir without full path !
+  """
+  @spec compress(binary, binary) :: {:ok, binary} | {:error, term()}
+  def compress("", _), do: {:error, "Wrong input path"}
+  def compress(_, ""), do: {:error, "Wrong output path"}
+
+  def compress(from, to) do
+    Logger.debug("Compressing path: #{from} to #{to}")
+
+    command = "tar -czvf #{to} -C #{from} . > /dev/null 2>&1"
+
+    with true <- String.ends_with?(to, ".tgz"),
+         false <- File.exists?(to),
+         %Result{err: nil, status: 0} <- Porcelain.shell(command, out: nil) do
+      {:ok, to}
+    else
+      false ->
+        {:error, "Wrong name (must end with .tgz) for result archive #{to}"}
+
+      true ->
+        {:error, "Archive already exist: #{to}"}
+
+      %Result{status: status, err: err} ->
+        {:error, "Failed with status: #{inspect(status)} and error: #{inspect(err)}"}
+
+      res ->
+        Logger.error(res)
+        {:error, "Unknown error"}
+    end
+  end
+
+  @doc """
+  Extracts snapshot to given folder
+  """
+  @spec extract(binary, binary) :: {:ok, binary} | {:error, term()}
+  def extract("", _), do: {:error, "Wrong path to snapshot passed"}
+  def extract(_, ""), do: {:error, "Wrong extracting path for snapshot passed"}
+
+  def extract(from, to) do
+    Logger.debug("Extracting #{from} to #{to}")
+
+    command = "tar -xzvf #{from} -C #{to} > /dev/null 2>&1"
+
+    unless File.exists?(to) do
+      File.mkdir_p(to)
+    end
+
+    case Porcelain.shell(command, out: nil) do
+      %Result{err: nil, status: 0} ->
+        {:ok, to}
+
+      %Result{status: status, err: err} ->
+        {:error, "Failed with status: #{inspect(status)} and error: #{inspect(err)}"}
+
+      res ->
+        Logger.error(res)
+        {:error, "Unknown error"}
+    end
+  end
+
+  # Try to lookup for a key till new wouldn't be generated
+  defp generate_snapshot_id() do
+    id = Chain.unique_id()
+
+    case :dets.lookup(@table, id) do
+      [] ->
+        id
+
+      _ ->
+        generate_snapshot_id()
+    end
+  end
+end

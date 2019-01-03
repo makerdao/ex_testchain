@@ -14,7 +14,8 @@ defmodule Chain.Application do
     children = [
       Chain.EVM.Supervisor,
       {Registry, keys: :unique, name: Chain.EVM.Registry},
-      Chain.Watcher
+      Chain.Watcher,
+      Chain.SnapshotManager
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
