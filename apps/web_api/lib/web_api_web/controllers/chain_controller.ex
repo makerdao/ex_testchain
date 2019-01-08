@@ -2,7 +2,6 @@ defmodule WebApiWeb.ChainController do
   use WebApiWeb, :controller
 
   alias Chain.SnapshotManager
-  alias Chain.Snapshot.Details
 
   # Get version for binaries and chain
   def version(conn, _) do
@@ -12,7 +11,7 @@ defmodule WebApiWeb.ChainController do
 
   # Load snapshot detailt and download file
   def download_snapshot(conn, %{"id" => id}) do
-    with %{path: path} <- SnapshotManager.details(id),
+    with %{path: path} <- SnapshotManager.by_id(id),
          true <- File.exists?(path) do
       conn
       |> send_download({:file, path})
@@ -23,5 +22,16 @@ defmodule WebApiWeb.ChainController do
         |> put_view(WebApiWeb.ErrorView)
         |> render("404.json")
     end
+  end
+
+  # load list of snapshots for chain
+  def snapshot_list(conn, %{"chain" => chain}) do
+    list =
+      chain
+      |> String.to_atom()
+      |> SnapshotManager.by_chain()
+
+    conn
+    |> json(%{status: "ok", list: list})
   end
 end

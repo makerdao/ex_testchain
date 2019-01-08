@@ -5,7 +5,6 @@ defmodule Chain.EVM.Implementation.Ganache do
   use Chain.EVM
 
   alias Chain.EVM.Config
-  alias Chain.EVM.Notification
 
   @impl Chain.EVM
   def start(%Config{id: id} = config) do
@@ -18,9 +17,17 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def stop(_, %{port: port} = state) do
+  def stop(%{id: id}, %{port: port, log_file: log_file} = state) do
     true = Porcelain.Process.stop(port)
-    {:ok, state}
+
+    # We have to close log file on port close. 
+    # Otherwise it might be opened againand stay opened later
+    unless log_file == nil do
+      Logger.debug("#{id}: Closing log file because of stopping ganache")
+      File.close(log_file)
+    end
+
+    {:ok, %{state | log_file: nil}}
   end
 
   @impl Chain.EVM
@@ -41,80 +48,6 @@ defmodule Chain.EVM.Implementation.Ganache do
   def handle_msg(str, _, %{log_file: file}) do
     IO.binwrite(file, str)
     :ok
-  end
-
-  def take_snapshot(path_to, %{id: id} = config, state) do
-    Logger.debug("#{id}: Making snapshot")
-
-    db_path = Map.get(config, :db_path)
-
-    unless File.dir?(path_to) do
-      :ok = File.mkdir_p!(path_to)
-    end
-
-    # Check if folder is empty
-    case File.ls(path_to) do
-      {:ok, []} ->
-        Logger.debug("#{id} Stopping chain before snapshot")
-        {:ok, _} = stop(config, state)
-
-        {:ok, _} = File.cp_r(db_path, path_to)
-        Logger.debug("#{id}: Snapshot made to #{path_to}")
-
-        %{err: nil} = port = start_node(config)
-        Logger.debug("#{id} Starting chain after making a snapshot")
-
-        :ok = wait_started(config, state)
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{id: id, event: :snapshot_taken, data: %{path_to: path_to}})
-        end
-
-        # Returning spanshot details
-        {:reply, {:ok, path_to}, %{state | port: port}}
-
-      _ ->
-        {:reply, {:error, "#{path_to} is not empty"}, state}
-    end
-  end
-
-  def revert_snapshot(path_from, %{id: id} = config, state) do
-    Logger.debug("#{id} restoring snapshot from #{path_from}")
-
-    db_path = Map.get(config, :db_path)
-
-    case File.dir?(path_from) do
-      false ->
-        {:reply, {:error, "No such directory #{path_from}"}, state}
-
-      true ->
-        Logger.debug("#{id} Stopping chain before restoring snapshot")
-        {:ok, _} = stop(config, state)
-
-        if File.dir?(db_path) do
-          {:ok, _} = File.rm_rf(db_path)
-          :ok = File.mkdir(db_path)
-        end
-
-        {:ok, _} = File.cp_r(path_from, db_path)
-
-        %{err: nil} = port = start_node(config)
-        Logger.debug("#{id} Starting chain after restoring a snapshot")
-
-        :ok = wait_started(config, state)
-        Logger.debug("#{id} Chain restored snapshot from #{path_from}")
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{
-            id: id,
-            event: :snapshot_reverted,
-            data: %{path_from: path_from}
-          })
-        end
-
-        # Returning spanshot details
-        {:reply, :ok, %{state | port: port}}
-    end
   end
 
   @impl Chain.EVM
@@ -279,22 +212,4 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   defp open_log_file(_), do: nil
-
-  # waiting for 30 secs ganache to start if not started - raising error
-  defp wait_started(config, state, times \\ 0)
-
-  defp wait_started(%{id: id}, _state, times) when times >= 150,
-    do: raise("#{id} Timeout waiting geth to start...")
-
-  defp wait_started(config, state, times) do
-    case started?(config, state) do
-      true ->
-        :ok
-
-      _ ->
-        # Waiting
-        :timer.sleep(200)
-        wait_started(config, state, times + 1)
-    end
-  end
 end

@@ -73,47 +73,6 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def take_snapshot(
-        path_to,
-        %{id: id} = config,
-        %{accounts: accounts} = state
-      ) do
-    Logger.debug("#{id}: Making snapshot")
-
-    db_path = Map.get(config, :db_path)
-
-    unless File.dir?(path_to) do
-      Logger.debug("#{id}: Creating new path for snapshot #{path_to}")
-      :ok = File.mkdir_p!(path_to)
-    end
-
-    # Check if folder is empty
-    case File.ls(path_to) do
-      {:ok, []} ->
-        Logger.debug("#{id} Stopping chain before snapshot")
-        {:ok, _} = stop(config, state)
-
-        {:ok, _} = File.cp_r(db_path, path_to)
-        Logger.debug("#{id}: Snapshot made to #{path_to}")
-
-        %{err: nil} = port = start_node(config, accounts)
-        Logger.debug("#{id} Starting chain after making a snapshot")
-
-        :ok = wait_started(config, state)
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{id: id, event: :snapshot_taken, data: %{path_to: path_to}})
-        end
-
-        # Returning spanshot details
-        {:reply, {:ok, path_to}, %{state | port: port}}
-
-      _ ->
-        {:reply, {:error, "#{path_to} is not empty"}, state}
-    end
-  end
-
-  @impl Chain.EVM
   def revert_snapshot(path_from, %{id: id} = config, %{accounts: accounts} = state) do
     Logger.debug("#{id} restoring snapshot from #{path_from}")
 
@@ -373,10 +332,11 @@ defmodule Chain.EVM.Implementation.Geth do
   # This action will send command directly to started node console.
   # Without attaching. 
   # If you will send breacking command - node might exit
-  defp send_command(port, command) do
-    Porcelain.Process.send_input(port, command <> "\n")
-    :ok
-  end
+
+  # defp send_command(port, command) do
+  # Porcelain.Process.send_input(port, command <> "\n")
+  # :ok
+  # end
 
   # load list of existing accounts
   defp load_existing_accounts(db_path) do
@@ -405,24 +365,6 @@ defmodule Chain.EVM.Implementation.Geth do
 
       _ ->
         ""
-    end
-  end
-
-  # waiting for 30 secs geth to start if not started - raising error
-  defp wait_started(config, state, times \\ 0)
-
-  defp wait_started(%{id: id}, _state, times) when times >= 150,
-    do: raise("#{id} Timeout waiting geth to start...")
-
-  defp wait_started(config, state, times) do
-    case started?(config, state) do
-      true ->
-        :ok
-
-      _ ->
-        # Waiting
-        :timer.sleep(200)
-        wait_started(config, state, times + 1)
     end
   end
 end

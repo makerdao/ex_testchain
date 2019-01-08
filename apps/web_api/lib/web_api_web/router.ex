@@ -9,6 +9,7 @@ defmodule WebApiWeb.Router do
     match :*, "/", IndexController, :index
     match :*, "/version", ChainController, :version
     get "/snapshot/:id", ChainController, :download_snapshot
+    get "/snapshots/:chain", ChainController, :snapshot_list
   end
 
   scope "/api", WebApiWeb do

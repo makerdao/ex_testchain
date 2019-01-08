@@ -77,19 +77,16 @@ defmodule Chain.SnapshotManager do
   end
 
   @doc """
-  Restore snapshot by it's id to given path
+  Restore snapshot to given path
   """
-  @spec restore_snapshot!(binary, binary) :: :ok
-  def restore_snapshot!("", _), do: raise(ArgumentError, message: "Wrong snapshot id passed")
+  @spec restore_snapshot!(Chain.Snapshot.Details.t(), binary) :: :ok
+  def restore_snapshot!(nil, _),
+    do: raise(ArgumentError, message: "Wrong snapshot details passed")
 
   def restore_snapshot!(_, ""),
     do: raise(ArgumentError, message: "Wrong snapshot restore path passed")
 
-  def restore_snapshot!(id, to) do
-    unless %SnapshotDetails{path: from} = details(id) do
-      raise ArgumentError, message: "could not load snapshot with id: #{id}"
-    end
-
+  def restore_snapshot!(%SnapshotDetails{id: id, path: from}, to) do
     Logger.debug("Restoring snapshot #{id} from #{from} to #{to}")
 
     unless File.exists?(to) do
@@ -118,25 +115,47 @@ defmodule Chain.SnapshotManager do
 
   @doc """
   Load snapshot details by id
+  In case of error it might raise an exception
   """
-  @spec details(binary) :: Chain.Snapshot.Details.t() | nil
-  def details(id) do
+  @spec by_id(binary) :: Chain.Snapshot.Details.t() | nil
+  def by_id(id) do
     case :dets.lookup(@table, id) do
       [] ->
         nil
 
       [{^id, _, snapshot}] ->
         snapshot
-
-      _ ->
-        raise "something wrong with loading snapshot details"
     end
   end
 
+  @doc """
+  Load list of existing snapshots by chain type
+  """
   @spec by_chain(Chain.evm_type()) :: [Chain.Snapshot.Details.t()]
   def by_chain(chain) do
     :dets.match(@table, {:_, chain, :"$1"})
     |> Enum.map(fn [snap] -> snap end)
+  end
+
+  @doc """
+  Remove snapshot details from local DB
+  """
+  @spec remove(binary) :: :ok
+  def remove(id) do
+    case by_id(id) do
+      nil ->
+        :ok
+
+      %SnapshotDetails{path: path} ->
+        unless File.exists?(path) do
+          File.rm(path)
+        end
+
+        # Remove from db
+        :dets.delete(@table, id)
+
+        :ok
+    end
   end
 
   @doc """

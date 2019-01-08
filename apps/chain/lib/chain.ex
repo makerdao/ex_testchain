@@ -99,19 +99,20 @@ defmodule Chain do
   **Note** this spanshot will be taken based on chain files. 
   For chains with internal shnapshot features - you might use `Chain.take_internal_snapshot/1`
 
-  Function will return path_to_snapshot or generated id
+  Function will return details about newly generated snapshot in format:
+  `{:ok, Chain.Snapshot.Details.t()}`
   """
-  @spec take_snapshot(Chain.evm_id(), binary) :: {:ok, binary} | {:error, term()}
-  def take_snapshot(id, path_to \\ ""),
-    do: GenServer.call(get_pid!(id), {:take_snapshot, path_to}, @timeout)
+  @spec take_snapshot(Chain.evm_id()) :: {:ok, binary} | {:error, term()}
+  def take_snapshot(id),
+    do: GenServer.call(get_pid!(id), :take_snapshot, @timeout)
 
   @doc """
   Revert previously generated snapshot.
   For `ganache` chain you could provide `id` for others - path to snapshot
   """
-  @spec revert_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
-  def revert_snapshot(id, path_or_id),
-    do: GenServer.call(get_pid!(id), {:revert_snapshot, path_or_id}, @timeout)
+  @spec revert_snapshot(Chain.evm_id(), Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
+  def revert_snapshot(id, snapshot),
+    do: GenServer.call(get_pid!(id), {:revert_snapshot, snapshot}, @timeout)
 
   @doc """
   Take internal snapshot on chain. 
