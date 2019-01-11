@@ -39,6 +39,11 @@ defmodule Chain.EVM.GethTest do
     on_exit(fn ->
       ChainHelper.trace(pid)
       :ok = Chain.stop(id)
+
+      assert_receive {:trace, ^pid, :receive,
+                      %Notification{id: ^id, event: :status_changed, data: :terminating}},
+                     @timeout
+
       assert_receive {:trace, ^pid, :receive, %Notification{id: ^id, event: :stopped}}, @timeout
       ChainHelper.untrace(pid)
 
