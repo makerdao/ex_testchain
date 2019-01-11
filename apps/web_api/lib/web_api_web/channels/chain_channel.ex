@@ -1,4 +1,6 @@
 defmodule WebApiWeb.ChainChannel do
+  require Logger
+
   use Phoenix.Channel, log_join: false, log_handle_in: :debug
   alias Chain.Snapshot.Details, as: SnapshotDetails
 
@@ -52,12 +54,13 @@ defmodule WebApiWeb.ChainChannel do
         %{"snapshot" => snapshot_id},
         %{topic: "chain:" <> id} = socket
       ) do
-    case Chain.revert_snapshot(id, snapshot_id) do
-      :ok ->
-        {:reply, {:ok, %{status: "ok"}}, socket}
-
-      {:error, err} ->
-        {:reply, {:error, %{message: err}}, socket}
+    with %SnapshotDetails{} = snapshot <- Chain.SnapshotManager.by_id(snapshot_id),
+         :ok <- Chain.revert_snapshot(id, snapshot) do
+      {:reply, {:ok, %{status: "ok"}}, socket}
+    else
+      err ->
+        Logger.error("#{id}: Failed to revert snapshot: #{inspect(err)}")
+        {:reply, {:error, %{message: "failed to revert snapshot"}}, socket}
     end
   end
 end

@@ -69,7 +69,13 @@ defmodule Chain.SnapshotManager do
 
     case result do
       {:ok, _} ->
-        %SnapshotDetails{id: id, path: to, chain: chain_type, description: description}
+        %SnapshotDetails{
+          id: id,
+          path: to,
+          chain: chain_type,
+          description: description,
+          date: DateTime.utc_now()
+        }
 
       {:error, msg} ->
         raise msg

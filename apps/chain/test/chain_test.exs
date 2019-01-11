@@ -4,11 +4,17 @@ defmodule ChainTest do
 
   alias Chain.EVM.Config
 
-  describe "start() :: " do
-    test "fail with non existing chain" do
-      {:error, :unsuported_evm_type} =
-        %Config{type: :non_existing}
-        |> Chain.start()
-    end
+  test "start() fail with non existing chain" do
+    {:error, :unsuported_evm_type} =
+      %Config{type: :non_existing}
+      |> Chain.start()
+  end
+
+  test "unique_id() to get uniq numbers" do
+    refute Chain.unique_id() == Chain.unique_id()
+  end
+
+  test "version() to get versions" do
+    assert Chain.version() =~ "version"
   end
 end

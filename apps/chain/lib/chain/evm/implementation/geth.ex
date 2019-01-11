@@ -5,7 +5,6 @@ defmodule Chain.EVM.Implementation.Geth do
   use Chain.EVM
 
   alias Chain.EVM.Config
-  alias Chain.EVM.Notification
   alias Chain.EVM.Implementation.Geth.Genesis
 
   require Logger
@@ -53,10 +52,10 @@ defmodule Chain.EVM.Implementation.Geth do
 
   @impl Chain.EVM
   def stop(_, %{port: port} = state) do
-    # send_command(port, "exit")
+    send_command(port, "exit")
     # Have to stop process usign sigterm
     # otherwise it return bad exit code
-    true = Porcelain.Process.stop(port)
+    # true = Porcelain.Process.stop(port)
     {:ok, state}
   end
 
@@ -70,46 +69,6 @@ defmodule Chain.EVM.Implementation.Geth do
   def stop_mine(%Config{http_port: http_port}, state) do
     {:ok, nil} = exec_command(http_port, "miner_stop")
     {:ok, %{state | mining: false}}
-  end
-
-  @impl Chain.EVM
-  def revert_snapshot(path_from, %{id: id} = config, %{accounts: accounts} = state) do
-    Logger.debug("#{id} restoring snapshot from #{path_from}")
-
-    db_path = Map.get(config, :db_path)
-
-    case File.dir?(path_from) do
-      false ->
-        {:reply, {:error, "No such directory #{path_from}"}, state}
-
-      true ->
-        Logger.debug("#{id} Stopping chain before restoring snapshot")
-        {:ok, _} = stop(config, state)
-
-        if File.dir?(db_path) do
-          {:ok, _} = File.rm_rf(db_path)
-          :ok = File.mkdir(db_path)
-        end
-
-        {:ok, _} = File.cp_r(path_from, db_path)
-
-        %{err: nil} = port = start_node(config, accounts)
-        Logger.debug("#{id} Starting chain after restoring a snapshot")
-
-        :ok = wait_started(config, state)
-        Logger.debug("#{id} Chain restored snapshot from #{path_from}")
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{
-            id: id,
-            event: :snapshot_reverted,
-            data: %{path_from: path_from}
-          })
-        end
-
-        # Returning spanshot details
-        {:reply, :ok, %{state | port: port}}
-    end
   end
 
   @impl Chain.EVM
@@ -333,10 +292,10 @@ defmodule Chain.EVM.Implementation.Geth do
   # Without attaching. 
   # If you will send breacking command - node might exit
 
-  # defp send_command(port, command) do
-  # Porcelain.Process.send_input(port, command <> "\n")
-  # :ok
-  # end
+  defp send_command(port, command) do
+    Porcelain.Process.send_input(port, command <> "\n")
+    :ok
+  end
 
   # load list of existing accounts
   defp load_existing_accounts(db_path) do

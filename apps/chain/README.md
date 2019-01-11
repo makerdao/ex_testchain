@@ -7,9 +7,9 @@ For now it coudl work with:
  - `ganache` - Ganache client
 
 Application consist of N simple modules: 
- - `Chain.EVM.Config` - Module contain starting configuration of chian/evm
  - `Chain.EVM` - behaviour that have to be implemented by any evm type (sort of interface in non Elixir)
- - `Chain.EVM.Process` - Module containing all basic details about already started chain/evm
+ - `Chain.EVM.Config` - Module contain starting configuration of chian/evm
+ - `Chain.EVM.Notification` - Module containing base scructure for all notifications from chains
  - `Chain` - Main module containing all basic functionality for starting/controlling chains/evms
  - `Chain.EVM.Implementation.Geth` - Geth specific functions and EVM implementation
  - `Chain.EVM.Implementation.Ganache` - Ganache implementation and specific functions

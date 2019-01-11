@@ -22,14 +22,23 @@
                     clean_on_stop: true, // Will delete chain db folder after chain stop
                 }
 
-                api.push("start", options)
-                    .receive("ok", ({id: id}) => {
+                api.push('start', options)
+                    .receive('ok', ({id: id}) => {
                         console.log('Created new chain', id)
                         start_channel(id)
                             .on('started', (data) => console.log('Chain started', data))
                     })
                     .receive('error', console.error)
                     .receive('timeout', () => console.log('Network issues'))
+            }
+
+            function list_snapshots(chain) {
+                api.push('snapshots', {chain: chain})
+                    .receive('ok', ({ snapshots }) => {
+                        console.log("List of snapshots:", snapshots)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Timeout loading list of snapshots'))
             }
 
             function start_channel(id) {
@@ -66,5 +75,78 @@
     </head>
     <body>
         This is Developer pahge. Take a look into scripts for page.
+
+
+        <pre>
+            window.socket = new Phoenix.Socket("/socket", {})
+            window.socket.connect()
+
+            window.api = window.socket.channel('api')
+            window.api
+                .join()
+                .receive('ok', (data) => console.log('Connected to API channel', data))
+                .receive('error', console.error)
+
+            function start(chain) {
+                const options = {
+                    type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
+                    id: null, // Might be string but normally better to omit
+                    http_port: 8545, // port for chain. should be changed on any new chain
+                    ws_port: 8546, // ws port (only for geth) for ganache will be ignored
+                    accounts: 2, // Number of account to be created on chain start
+                    block_mine_time: 0, // how often new block should be mined (0 - instamine)
+                    clean_on_stop: true, // Will delete chain db folder after chain stop
+                }
+
+                api.push('start', options)
+                    .receive('ok', ({id: id}) => {
+                        console.log('Created new chain', id)
+                        start_channel(id)
+                            .on('started', (data) => console.log('Chain started', data))
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Network issues'))
+            }
+
+            function list_snapshots(chain) {
+                api.push('snapshots', {chain: chain})
+                    .receive('ok', ({ snapshots }) => {
+                        console.log("List of snapshots:", snapshots)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Timeout loading list of snapshots'))
+            }
+
+            function start_channel(id) {
+                window[id] = socket.channel(`chain:${id}`)
+                window[id].join()
+                    .receive('ok', () => console.log('Joined channel chain', id))
+                    .receive('error', console.error)
+
+                return window[id]
+            }
+
+            function chain(id) {
+              return window[id]
+            }
+
+            function stop(id) {
+              chain(id).push('stop')
+                .receive('ok', () => console.log('Chain stopped !'))
+                .receive('error', console.error)
+            }
+
+            function take_snapshot(id) {
+                chain(id).push('take_snapshot')
+                    .receive('ok', ({ snapshot }) => console.log('Snapshot made for chain %s with id %s', id, snapshot))
+                    .receive('error', console.error)
+            }
+
+            function revert_snapshot(id, snapshot) {
+                chain(id).push('revert_snapshot', { snapshot })
+                    .receive('ok', () => console.log('Snapshot %s reverted to chain %s', snapshot, id))
+                    .receive('error', console.error)
+            }
+        </pre>
     </body>
 </html>

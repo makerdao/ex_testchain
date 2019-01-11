@@ -79,6 +79,12 @@ defmodule Chain do
   end
 
   @doc """
+  Load details for running chain.
+  """
+  @spec details(Chain.evm_id()) :: {:ok, Chain.EVM.Process.t()} | {:error, term()}
+  def details(_id), do: {:error, "not implemented yet"}
+
+  @doc """
   Start automining feature
   """
   @spec start_mine(Chain.evm_id()) :: :ok | {:error, term()}
@@ -104,7 +110,7 @@ defmodule Chain do
   """
   @spec take_snapshot(Chain.evm_id()) :: {:ok, binary} | {:error, term()}
   def take_snapshot(id),
-    do: GenServer.call(get_pid!(id), :take_snapshot, @timeout)
+    do: GenServer.cast(get_pid!(id), :take_snapshot)
 
   @doc """
   Revert previously generated snapshot.
@@ -112,7 +118,7 @@ defmodule Chain do
   """
   @spec revert_snapshot(Chain.evm_id(), Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
   def revert_snapshot(id, snapshot),
-    do: GenServer.call(get_pid!(id), {:revert_snapshot, snapshot}, @timeout)
+    do: GenServer.cast(get_pid!(id), {:revert_snapshot, snapshot})
 
   @doc """
   Take internal snapshot on chain. 

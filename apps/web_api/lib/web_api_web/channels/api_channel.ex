@@ -32,4 +32,11 @@ defmodule WebApiWeb.ApiChannel do
         {:reply, {:error, %{message: err}}, socket}
     end
   end
+
+  @doc """
+  Get list of snapshots for given chain type
+  """
+  def handle_in("snapshots", %{"chain" => chain}, socket) do
+    {:reply, {:ok, %{snapshots: Chain.SnapshotManager.by_chain(chain)}}, socket}
+  end
 end
