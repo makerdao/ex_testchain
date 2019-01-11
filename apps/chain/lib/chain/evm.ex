@@ -151,6 +151,7 @@ defmodule Chain.EVM do
 
         Consist of this properties:
          - `status` - Chain status
+         - `task` - Task scheduled for execution after chain stop
          - `config` - default configuration for chain. Not available in implemented callback functions
          - `internal_state` - state for chain implementation
 
@@ -213,7 +214,7 @@ defmodule Chain.EVM do
       # method will be called after snapshot for evm was taken and EVM switched to `:snapshot_taken` status.
       # here evm will be started again
       def handle_continue(
-            :start_after_snapshot,
+            :start_after_task,
             %State{status: status, config: config} = state
           )
           when status in ~w(snapshot_taken snapshot_reverted)a do
@@ -225,16 +226,6 @@ defmodule Chain.EVM do
         # See: `handle_info({:check_started, _})`
         check_started(self())
         {:noreply, %State{state | internal_state: new_state}}
-      end
-
-      @doc false
-      def handle_info(
-            {_pid, :data, :out, msg},
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        msg
-        |> handle_msg(config, internal_state)
-        |> handle_action(state)
       end
 
       @doc false
@@ -275,6 +266,16 @@ defmodule Chain.EVM do
 
       @doc false
       def handle_info(
+            {_pid, :data, :out, msg},
+            %State{config: config, internal_state: internal_state} = state
+          ) do
+        msg
+        |> handle_msg(config, internal_state)
+        |> handle_action(state)
+      end
+
+      @doc false
+      def handle_info(
             {_, :result, %Porcelain.Result{status: signal}},
             %State{status: :snapshot_taking, task: :take_snapshot, config: config} = state
           ) do
@@ -292,7 +293,7 @@ defmodule Chain.EVM do
           notify_status(config, :snapshot_taken)
 
           {:noreply, %State{state | status: :snapshot_taken, task: nil},
-           {:continue, :start_after_snapshot}}
+           {:continue, :start_after_task}}
         rescue
           err ->
             Logger.error("#{id} failed to make snapshot with error #{inspect(err)}")
@@ -324,7 +325,7 @@ defmodule Chain.EVM do
           notify_status(config, :snapshot_reverted)
 
           {:noreply, %State{state | status: :snapshot_reverted, task: nil},
-           {:continue, :start_after_snapshot}}
+           {:continue, :start_after_task}}
         rescue
           err ->
             Logger.error(
