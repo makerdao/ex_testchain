@@ -339,6 +339,17 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_, :result, %Porcelain.Result{status: signal}},
+            %State{status: :terminating, config: config} = state
+          ) do
+        Logger.debug("#{config.id} catched process exit status #{signal} on evm terminating")
+
+        # Everything is ok, terminating GenServer
+        {:stop, :normal, state}
+      end
+
+      @doc false
+      def handle_info(
+            {_, :result, %Porcelain.Result{status: signal}},
             %State{status: status, config: config} = state
           ) do
         Logger.error(
@@ -451,7 +462,8 @@ defmodule Chain.EVM do
         case stop(config, internal_state) do
           {:ok, new_internal_state} ->
             Logger.debug("#{config.id}: Successfully stopped EVM")
-            {:stop, :normal, %State{state | internal_state: new_internal_state}}
+            notify_status(config, :terminating)
+            {:noreply, %State{state | status: :terminating, internal_state: new_internal_state}}
 
           {:error, err} ->
             Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")

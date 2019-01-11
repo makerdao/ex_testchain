@@ -6,7 +6,8 @@ defmodule Chain.EVM.GethTest do
   alias Chain.Test.ChainHelper
   alias Chain.Snapshot.Details, as: SnapshotDetails
 
-  @timeout Application.get_env(:chain, :kill_timeout)
+  # @timeout Application.get_env(:chain, :kill_timeout)
+  @timeout 15_000
   @chain :geth
 
   setup_all do

@@ -17,17 +17,10 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def stop(%{id: id}, %{port: port, log_file: log_file} = state) do
+  def stop(%{id: id}, %{port: port} = state) do
+    Logger.debug("#{id}: Stoping ganache evm")
     true = Porcelain.Process.stop(port)
-
-    # We have to close log file on port close. 
-    # Otherwise it might be opened againand stay opened later
-    unless log_file == nil do
-      Logger.debug("#{id}: Closing log file because of stopping ganache")
-      File.close(log_file)
-    end
-
-    {:ok, %{state | log_file: nil}}
+    {:ok, state}
   end
 
   @impl Chain.EVM
@@ -92,8 +85,11 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def terminate(id, _config, %{port: port, log_file: file}) do
-    Logger.info("#{id}: Terminating...")
-    Porcelain.Process.stop(port)
+    Logger.debug("#{id}: Terminating...")
+
+    if Porcelain.Process.alive?(port) do
+      Porcelain.Process.stop(port)
+    end
 
     unless file == nil do
       Logger.debug("#{id} Closing log file")

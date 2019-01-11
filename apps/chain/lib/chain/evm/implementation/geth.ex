@@ -19,7 +19,7 @@ defmodule Chain.EVM.Implementation.Geth do
           create_accounts(Map.get(config, :accounts), db_path)
 
         _ ->
-          Logger.warn("#{id} Path #{db_path} is not empty. New accounts would not be created.")
+          Logger.info("#{id} Path #{db_path} is not empty. New accounts would not be created.")
           {:ok, list} = load_existing_accounts(db_path)
           list
       end
@@ -69,14 +69,15 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def terminate(id, config, %State{} = state) do
-    Logger.debug("#{id}: Terminating... #{inspect(state)}")
-    stop(config, state)
+  def terminate(id, config, nil) do
+    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok
   end
 
-  def terminate(id, config, nil) do
-    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
+  @impl Chain.EVM
+  def terminate(id, _config, state) do
+    Logger.debug("#{id}: Terminating... #{inspect(state)}")
+    # Porcelain.Process.stop(port)
     :ok
   end
 
