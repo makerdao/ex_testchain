@@ -37,6 +37,16 @@ defmodule Chain.EVM do
           | :failed
 
   @typedoc """
+  Task that should be performed.
+
+  Some tasks require chain to be stopped before performing
+  like, taking/reverting snapshots, changing initial evm configs.
+  such tasks should be set into `State.task` and after evm termination
+  system will perform this task and try to start chain again
+  """
+  @type scheduled_task :: nil | :take_snapshot | {:revert_snapshot, Chain.Snapshot.Details.t()}
+
+  @typedoc """
   Default evm action reply message
   """
   @type action_reply ::
@@ -90,38 +100,6 @@ defmodule Chain.EVM do
   @callback stop_mine(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
-  Callback will be invoked on take snapshot command. Chain have to perform snapshot operation
-  and store chain data to configured `Application.get_env(:chain, :snapshot_base_path)` formated as `uniq_id.tgz`
-  See: `Chain.SnapshotManager.make_snapshot!/3`
-
-  This function have to return `{:reply, result :: any(), state :: any()}` tuple. 
-  Result will be returned to caller using `GenServer.handle_call/3` callback.
-
-  Response example:
-  In case of success function have to return: `{:reply, {:ok, Chain.Snapshot.Details.t()}, state}`
-  In case of error: `{:reply, {:error, :not_implemented}, state`
-
-  If system tries to make a snapshot to directory. Make sure it's empty !
-  """
-  @callback take_snapshot(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
-
-  @doc """
-  Callback will be invoked on revert snapshot command.
-  Chain have to revert snapshot from given snapshot details.
-
-  This function have to return `{:reply, result :: any(), state :: any()}` tuple. 
-  Result will be returned to caller using `GenServer.handle_call/3` callback.
-
-  If `path_or_id` snapshot does not exist `{:reply, {:error, term()}, state}` should be returned
-  In case of success - `{:reply, :ok, state}` should be returned
-  """
-  @callback revert_snapshot(
-              shapshot :: Chain.Snapshot.Details.t(),
-              config :: Chain.EVM.Config.t(),
-              state :: any()
-            ) :: action_reply()
-
-  @doc """
   Callback will be invoked on internal spanshot.
 
   Some chains like `ganache` has internal snapshoting functionality
@@ -155,9 +133,6 @@ defmodule Chain.EVM do
 
       @behaviour Chain.EVM
 
-      # Will be used as delay before waiting for chain to start 
-      @wait_started_delay 200
-
       # Outside world URL for chain to be accessible
       @front_url Application.get_env(:chain, :front_url)
 
@@ -167,8 +142,8 @@ defmodule Chain.EVM do
       alias Chain.Snapshot.Details, as: SnapshotDetails
 
       # maximum amount of checks for evm started
-      # system checks if evm started every second
-      @max_start_checks 10
+      # system checks if evm started every 200ms
+      @max_start_checks 30 * 5
 
       defmodule State do
         @moduledoc """
@@ -184,11 +159,12 @@ defmodule Chain.EVM do
 
         @type t :: %__MODULE__{
                 status: Chain.EVM.status(),
+                task: Chain.EVM.scheduled_task(),
                 config: Chain.EVM.Config.t(),
                 internal_state: term()
               }
         @enforce_keys [:config]
-        defstruct status: :none, config: nil, internal_state: nil
+        defstruct status: :none, task: nil, config: nil, internal_state: nil
       end
 
       @doc false
@@ -238,23 +214,10 @@ defmodule Chain.EVM do
       # here evm will be started again
       def handle_continue(
             :start_after_snapshot,
-            %State{status: :snapshot_taken, config: config} = state
-          ) do
-        Logger.debug("#{config.id} Starting chain after making a snapshot")
-        # Start chain process
-        {:ok, new_state} = start(config)
-        # Schedule started check
-        # Operation is async and `status: :active` will be set later
-        # See: `handle_info({:check_started, _})`
-        check_started(self())
-        {:noreply, %State{state | internal_state: new_state}}
-      end
-
-      def handle_continue(
-            :start_after_snapshot,
-            %State{status: :snapshot_reverted, config: config} = state
-          ) do
-        Logger.debug("#{config.id} Starting chain after reverting a snapshot")
+            %State{status: status, config: config} = state
+          )
+          when status in ~w(snapshot_taken snapshot_reverted)a do
+        Logger.debug("#{config.id} Starting chain after #{status}")
         # Start chain process
         {:ok, new_state} = start(config)
         # Schedule started check
@@ -313,21 +276,23 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_, :result, %Porcelain.Result{status: signal}},
-            %State{status: :snapshot_taking, config: config} = state
+            %State{status: :snapshot_taking, task: :take_snapshot, config: config} = state
           ) do
         %Config{id: id, db_path: db_path, type: type} = config
-        Logger.debug("#{id}: Chain terminated for snapshot with exit status: #{signal}")
+        Logger.debug("#{id}: Chain terminated for taking snapshot with exit status: #{signal}")
 
         try do
           details = SnapshotManager.make_snapshot!(db_path, type)
           Logger.debug("#{id}: Snapshot made, details: #{inspect(details)}")
 
           if pid = Map.get(config, :notify_pid) do
-            send(pid, %Notification{id: id, event: :snapshot_taken, data: %{details: details}})
+            send(pid, %Notification{id: id, event: :snapshot_taken, data: details})
           end
 
           notify_status(config, :snapshot_taken)
-          {:noreply, %State{state | status: :snapshot_taken}, {:continue, :start_after_snapshot}}
+
+          {:noreply, %State{state | status: :snapshot_taken, task: nil},
+           {:continue, :start_after_snapshot}}
         rescue
           err ->
             Logger.error("#{id} failed to make snapshot with error #{inspect(err)}")
@@ -336,27 +301,46 @@ defmodule Chain.EVM do
         end
       end
 
-      # Idea about this is:
-      # When Porcelain will spawn an OS process it will handle it's termination.
-      # And on termination we will get message `{<from>, :result, %Porcelain.Result{} | nil}`
-      # So we have to check if our chain is already started (`%State{status: :active}`)
-      # And if it was started we have to restart chain (internal failure)
-      # But if chain was not yet started - we have to ignore this and just terminate PID
       @doc false
       def handle_info(
-            {_, :result, %Porcelain.Result{status: nil}},
-            %State{config: %{id: id}} = state
+            {_, :result, %Porcelain.Result{status: signal}},
+            %State{
+              status: :snapshot_reverting,
+              task: {:revert_snapshot, snapshot},
+              config: config
+            } = state
           ) do
-        Logger.debug("#{id}: Chain terminated manually without any error !")
-        {:noreply, state}
+        %Config{id: id, db_path: db_path, type: type} = config
+        Logger.debug("#{id}: Chain terminated for reverting snapshot with exit status: #{signal}")
+
+        try do
+          :ok = SnapshotManager.restore_snapshot!(snapshot, db_path)
+          Logger.debug("#{id}: Snapshot reverted")
+
+          if pid = Map.get(config, :notify_pid) do
+            send(pid, %Notification{id: id, event: :snapshot_reverted, data: snapshot})
+          end
+
+          notify_status(config, :snapshot_reverted)
+
+          {:noreply, %State{state | status: :snapshot_reverted, task: nil},
+           {:continue, :start_after_snapshot}}
+        rescue
+          err ->
+            Logger.error(
+              "#{id} failed to revert snapshot #{inspect(snapshot)} with error #{inspect(err)}"
+            )
+
+            notify_status(config, :failed)
+            {:noreply, %State{state | status: :failed}}
+        end
       end
 
+      @doc false
       def handle_info(
-            {_, :result, %Porcelain.Result{status: signal}} = msg,
+            {_, :result, %Porcelain.Result{status: signal}},
             %State{status: status, config: config} = state
           ) do
-        IO.inspect(msg)
-
         Logger.error(
           "#{config.id} Chain failed with exit status: #{inspect(signal)}. Check logs: #{
             Map.get(config, :output, "")
@@ -419,11 +403,13 @@ defmodule Chain.EVM do
             :take_snapshot,
             %State{status: :active, config: config, internal_state: internal_state} = state
           ) do
-        Logger.debug("#{config.id} stopping emv before snapshot")
+        Logger.debug("#{config.id} stopping emv before taking snapshot")
         {:ok, new_state} = stop(config, internal_state)
         # Send notification about status change
         notify_status(config, :snapshot_taking)
-        {:noreply, %State{state | status: :snapshot_taking, internal_state: new_state}}
+
+        {:noreply,
+         %State{state | status: :snapshot_taking, task: :take_snapshot, internal_state: new_state}}
       end
 
       @doc false
@@ -437,9 +423,18 @@ defmodule Chain.EVM do
             {:revert_snapshot, snapshot},
             %State{status: :active, config: config, internal_state: internal_state} = state
           ) do
-        snapshot
-        |> revert_snapshot(config, internal_state)
-        |> handle_action(state)
+        Logger.debug("#{config.id} stopping emv before reverting snapshot")
+        {:ok, new_state} = stop(config, internal_state)
+        # Send notification about status change
+        notify_status(config, :snapshot_reverting)
+
+        {:noreply,
+         %State{
+           state
+           | status: :snapshot_reverting,
+             task: {:revert_snapshot, snapshot},
+             internal_state: new_state
+         }}
       end
 
       @doc false
@@ -592,82 +587,6 @@ defmodule Chain.EVM do
       def stop_mine(_, _), do: :ignore
 
       @impl Chain.EVM
-      def take_snapshot(%{id: id, type: type, db_path: db_path} = config, state) do
-        Logger.debug("#{id}: Making snapshot for chain #{type} working in #{db_path}")
-
-        try do
-          Logger.debug("#{id} Stopping chain before snapshot")
-          {:ok, _} = stop(config, state)
-          details = SnapshotManager.make_snapshot!(db_path, type)
-          Logger.debug("#{id}: Snapshot made, details: #{inspect(details)}")
-
-          if pid = Map.get(config, :notify_pid) do
-            send(pid, %Notification{id: id, event: :snapshot_taken, data: %{details: details}})
-          end
-
-          Logger.debug("#{id} Starting chain after making a snapshot")
-          {:ok, new_state} = start(config)
-          :ok = wait_started(config, new_state)
-
-          # Returning spanshot details
-          {:reply, {:ok, details}, new_state}
-        rescue
-          err ->
-            {:reply, {:error, err}, state}
-        end
-      end
-
-      @impl Chain.EVM
-      def revert_snapshot(
-            %SnapshotDetails{chain: chain} = snapshot,
-            %{id: id, type: type, db_path: db_path} = config,
-            state
-          )
-          # checks if snapshot is made for same chain
-          when chain == type do
-        Logger.debug("#{id}: Restoring snapshot #{snapshot.id} for #{type} working in #{db_path}")
-
-        with {:ok, _} <- stop(config, state),
-             {:ok, _} <- File.rm_rf(db_path),
-             :ok <- File.mkdir(db_path) do
-          Logger.debug("#{id}: Chain stopped and snapshot loaded")
-
-          try do
-            SnapshotManager.restore_snapshot!(snapshot, db_path)
-            Logger.debug("#{id} Starting chain after restoring a snapshot")
-            {:ok, new_state} = start(config)
-            :ok = wait_started(config, new_state)
-
-            Logger.debug("#{id} Chain restored snapshot #{snapshot.id}")
-
-            if pid = Map.get(config, :notify_pid) do
-              send(pid, %Notification{
-                id: id,
-                event: :snapshot_reverted,
-                data: %{snapshot: snapshot}
-              })
-            end
-
-            # Returning spanshot details
-            {:reply, :ok, new_state}
-          rescue
-            err ->
-              {:reply, {:error, err}, state}
-          end
-        else
-          _ ->
-            Logger.error("#{id}: fail everting snapshot #{inspect(snapshot)} for chain #{type}")
-
-            {:reply, {:error, "failed to revert snapshot #{snapshot.id} chain: #{type}"}, state}
-        end
-
-        {:reply, :ok, state}
-      end
-
-      def revert_snapshot(%SnapshotDetails{chain: chain}, %{type: type}, state),
-        do: {:reply, {:error, "snapshot for #{chain} could not be applied to #{type}"}, state}
-
-      @impl Chain.EVM
       def take_internal_snapshot(_config, state), do: {:reply, {:error, :not_implemented}, state}
 
       @impl Chain.EVM
@@ -686,7 +605,7 @@ defmodule Chain.EVM do
         send(pid, %Notification{
           id: id,
           event: :status_changed,
-          data: %{status: status}
+          data: status
         })
       end
 
@@ -716,27 +635,6 @@ defmodule Chain.EVM do
         Process.send_after(pid, {:check_started, retries}, 200)
       end
 
-      # waiting for 30 sec till chain will start responding if not started - raising error
-      # NOTE: This function will try to call chain in sync manner ! 
-      # It will block execution flow !
-      # This function is usefull for sync checking if chain started
-      defp wait_started(config, state, times \\ 0)
-
-      defp wait_started(%{id: id}, _state, times) when times >= 150,
-        do: raise("#{id} Timeout waiting chain to start...")
-
-      defp wait_started(config, state, times) do
-        case started?(config, state) do
-          true ->
-            :ok
-
-          _ ->
-            # Waiting
-            :timer.sleep(@wait_started_delay)
-            wait_started(config, state, times + 1)
-        end
-      end
-
       # Allow to override functions
       defoverridable handle_started: 2,
                      started?: 2,
@@ -744,8 +642,6 @@ defmodule Chain.EVM do
                      start_mine: 2,
                      stop_mine: 2,
                      version: 0,
-                     take_snapshot: 2,
-                     revert_snapshot: 3,
                      take_internal_snapshot: 2,
                      revert_internal_snapshot: 3
     end

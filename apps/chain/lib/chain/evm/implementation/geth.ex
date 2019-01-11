@@ -53,9 +53,6 @@ defmodule Chain.EVM.Implementation.Geth do
   @impl Chain.EVM
   def stop(_, %{port: port} = state) do
     send_command(port, "exit")
-    # Have to stop process usign sigterm
-    # otherwise it return bad exit code
-    # true = Porcelain.Process.stop(port)
     {:ok, state}
   end
 
@@ -72,9 +69,9 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def terminate(id, _config, %{port: port} = state) do
-    Logger.info("#{id}: Terminating... #{inspect(state)}")
-    Porcelain.Process.stop(port)
+  def terminate(id, config, %State{} = state) do
+    Logger.debug("#{id}: Terminating... #{inspect(state)}")
+    stop(config, state)
     :ok
   end
 

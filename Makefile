@@ -11,6 +11,10 @@ help:
 	@perl -nle'print $& if m{^[a-zA-Z_-]+:.*?## .*$$}' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
 
+lint:
+	@mix dialyzer --format dialyxir --quiet
+	@mix credo
+
 deps: ## Load all required deps for project
 	@mix do deps.get, deps.compile
 	@cd priv/presets/ganache-cli

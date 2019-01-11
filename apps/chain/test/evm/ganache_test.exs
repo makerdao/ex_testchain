@@ -64,16 +64,26 @@ defmodule Chain.EVM.GanacheTest do
     assert Chain.exist?(id)
 
     ChainHelper.trace(pid)
-    {:ok, %SnapshotDetails{chain: @chain, path: path} = snapshot} = Chain.take_snapshot(id)
+    :ok = Chain.take_snapshot(id)
 
-    assert_receive {:trace, ^pid, :receive, %Notification{id: ^id, event: :snapshot_taken}},
+    assert_receive {:trace, ^pid, :receive,
+                    %Notification{id: ^id, event: :snapshot_taken, data: snapshot}},
                    @timeout
 
+    %SnapshotDetails{chain: @chain, path: path} = snapshot
     assert File.exists?(path)
+
+    assert_receive {:trace, ^pid, :receive,
+                    %Notification{id: ^id, event: :status_changed, data: :active}},
+                   @timeout
 
     :ok = Chain.revert_snapshot(id, snapshot)
 
     assert_receive {:trace, ^pid, :receive, %Notification{id: ^id, event: :snapshot_reverted}},
+                   @timeout
+
+    assert_receive {:trace, ^pid, :receive,
+                    %Notification{id: ^id, event: :status_changed, data: :active}},
                    @timeout
 
     ChainHelper.untrace(pid)
