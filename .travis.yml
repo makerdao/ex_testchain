@@ -10,7 +10,6 @@ before_script:
 env:
   global:
     - GANACHE_EXECUTABLE=ganache-cli
-    - MIX_ENV=test
 
 elixir:
   - '1.7'
