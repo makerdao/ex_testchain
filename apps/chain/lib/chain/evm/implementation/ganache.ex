@@ -8,6 +8,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def start(%Config{id: id} = config) do
+    IO.inspect(Application.get_env(:chain, :ganache_executable))
     Logger.debug("#{id}: Starting ganache-cli")
     %{err: nil} = port = start_node(config)
 
