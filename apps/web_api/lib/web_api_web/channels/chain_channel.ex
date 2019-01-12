@@ -28,20 +28,9 @@ defmodule WebApiWeb.ChainChannel do
         params,
         %{topic: "chain:" <> id} = socket
       ) do
-    case Chain.take_snapshot(id) do
-      {:ok, %SnapshotDetails{} = details} ->
-        snapshot = %{
-          id: id,
-          snapshot_id: Map.get(details, :id),
-          chain_type: Map.get(details, :chain),
-          download_url: "/snapshot/#{Map.get(details, :id)}"
-        }
-
-        if description = Map.get(params, "description") do
-          Chain.SnapshotManager.store(%SnapshotDetails{details | description: description})
-        end
-
-        {:reply, {:ok, %{snapshot: snapshot}}, socket}
+    case Chain.take_snapshot(id, Map.get(params, "description", "")) do
+      :ok ->
+        {:reply, {:ok, %{status: "ok"}}, socket}
 
       {:error, err} ->
         {:reply, {:error, %{message: err}}, socket}

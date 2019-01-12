@@ -153,7 +153,7 @@ defmodule Chain.SnapshotManager do
         :ok
 
       %SnapshotDetails{path: path} ->
-        unless File.exists?(path) do
+        if File.exists?(path) do
           File.rm(path)
         end
 

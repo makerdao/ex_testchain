@@ -13,12 +13,15 @@ defmodule Chain.EVM do
 
   @typedoc """
   List of EVM lifecircle statuses
+  TODO: check `:terminated` status. It should be set to chain that stopped but was not removed from DB
+
   Meanings: 
    
   - `:none` - Did nothing. Initial status
   - `:starting` - Starting chain process (Not operational)
   - `:active` - Fully operational chain
   - `:terminating` - Termination process started (Not operational)
+  - `:terminated` - Chain terminated (Not operational) 
   - `:snapshot_taking` - EVM is stopping/stoped to make hard snapshot for evm DB. (Not operational)
   - `:snapshot_taken` - EVM took snapshot and now is in starting process (Not operational)
   - `:snapshot_reverting` - EVM stopping/stoped and in process of restoring snapshot (Not operational)
@@ -30,6 +33,7 @@ defmodule Chain.EVM do
           | :starting
           | :active
           | :terminating
+          | :terminated
           | :snapshot_taking
           | :snapshot_taken
           | :snapshot_reverting
@@ -44,7 +48,10 @@ defmodule Chain.EVM do
   such tasks should be set into `State.task` and after evm termination
   system will perform this task and try to start chain again
   """
-  @type scheduled_task :: nil | :take_snapshot | {:revert_snapshot, Chain.Snapshot.Details.t()}
+  @type scheduled_task ::
+          nil
+          | {:take_snapshot, description :: binary}
+          | {:revert_snapshot, Chain.Snapshot.Details.t()}
 
   @typedoc """
   Default evm action reply message
@@ -277,13 +284,22 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_, :result, %Porcelain.Result{status: signal}},
-            %State{status: :snapshot_taking, task: :take_snapshot, config: config} = state
+            %State{status: :snapshot_taking, task: {:take_snapshot, description}, config: config} =
+              state
           ) do
         %Config{id: id, db_path: db_path, type: type} = config
         Logger.debug("#{id}: Chain terminated for taking snapshot with exit status: #{signal}")
 
         try do
-          details = SnapshotManager.make_snapshot!(db_path, type)
+          details =
+            db_path
+            |> SnapshotManager.make_snapshot!(type)
+            |> Map.put(:description, description)
+
+          unless description == "" do
+            SnapshotManager.store(details)
+          end
+
           Logger.debug("#{id}: Snapshot made, details: #{inspect(details)}")
 
           if pid = Map.get(config, :notify_pid) do
@@ -412,7 +428,7 @@ defmodule Chain.EVM do
       end
 
       def handle_cast(
-            :take_snapshot,
+            {:take_snapshot, description},
             %State{status: :active, config: config, internal_state: internal_state} = state
           ) do
         Logger.debug("#{config.id} stopping emv before taking snapshot")
@@ -421,11 +437,16 @@ defmodule Chain.EVM do
         notify_status(config, :snapshot_taking)
 
         {:noreply,
-         %State{state | status: :snapshot_taking, task: :take_snapshot, internal_state: new_state}}
+         %State{
+           state
+           | status: :snapshot_taking,
+             task: {:take_snapshot, description},
+             internal_state: new_state
+         }}
       end
 
       @doc false
-      def handle_cast(:take_snapshot, state) do
+      def handle_cast({:take_snapshot, _}, state) do
         Logger.error("No way we could take snapshot for non operational evm")
         {:noreply, state}
       end

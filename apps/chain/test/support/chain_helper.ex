@@ -1,22 +1,5 @@
 defmodule Chain.Test.ChainHelper do
   @doc """
-  Generate random port numbe in rango of 8000 - 8999 
-  Function checks if port is in use. if it is generation repeats
-  """
-  @spec rand_port() :: non_neg_integer()
-  def rand_port() do
-    port = Enum.random(8000..8999)
-
-    case Chain.Watcher.port_in_use?(port) do
-      false ->
-        port
-
-      true ->
-        rand_port()
-    end
-  end
-
-  @doc """
   Receive loop for events.
 
   Mainly this function is made for testing receiving notifications

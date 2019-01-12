@@ -12,13 +12,14 @@ defmodule WebApiWeb.ApiChannel do
   def handle_in("start", payload, socket) do
     config = %Config{
       type: String.to_atom(Map.get(payload, "type", "ganache")),
-      id: Map.get(payload, "id"),
-      http_port: Map.get(payload, "http_port", 8545),
-      ws_port: Map.get(payload, "ws_port", 8546),
+      # id: Map.get(payload, "id"),
+      # http_port: Map.get(payload, "http_port"),
+      # ws_port: Map.get(payload, "ws_port"),
       db_path: Map.get(payload, "db_path", ""),
       accounts: Map.get(payload, "accounts", 1),
       block_mine_time: Map.get(payload, "block_mine_time", 0),
       clean_on_stop: Map.get(payload, "clean_on_stop", false),
+      description: Map.get(payload, "description", ""),
       notify_pid: ChainMessageHandler
     }
 
@@ -36,7 +37,7 @@ defmodule WebApiWeb.ApiChannel do
   @doc """
   Get list of snapshots for given chain type
   """
-  def handle_in("snapshots", %{"chain" => chain}, socket) do
+  def handle_in("listSnapshots", %{"chain" => chain}, socket) do
     {:reply, {:ok, %{snapshots: Chain.SnapshotManager.by_chain(chain)}}, socket}
   end
 end

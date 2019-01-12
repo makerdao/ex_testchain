@@ -43,8 +43,7 @@ defmodule Chain do
   @spec start(Chain.EVM.Config.t()) :: {:ok, Chain.evm_id()} | {:error, term()}
   def start(%Config{type: :geth} = config), do: start_evm(Geth, config)
 
-  def start(%Config{type: :ganache, http_port: port} = config),
-    do: start_evm(Ganache, %Config{config | ws_port: port})
+  def start(%Config{type: :ganache} = config), do: start_evm(Ganache, config)
 
   def start(%Config{type: _}), do: {:error, :unsuported_evm_type}
 
@@ -58,21 +57,30 @@ defmodule Chain do
   @doc """
   Check if chain with given id exist
   """
-  @spec exist?(Chain.evm_id()) :: boolean()
-  def exist?(id), do: nil != get_pid(id)
+  @spec exists?(Chain.evm_id()) :: boolean()
+  def exists?(id), do: nil != get_pid(id)
+
+  @doc """
+  Check if chain with given id exist and alive
+  """
+  @spec alive?(Chain.evm_id()) :: boolean()
+  def alive?(id), do: nil != get_pid(id)
 
   @doc """
   Generate uniq ID
+
+  It also checks if such ID exist in runing processes list
+  and checks if chain db exist for this `id`
   """
   @spec unique_id() :: Chain.evm_id()
   def unique_id() do
     <<new_unique_id::big-integer-size(8)-unit(8)>> = :crypto.strong_rand_bytes(8)
+    new_unique_id = to_string(new_unique_id)
 
-    case get_pid(new_unique_id) do
-      nil ->
-        new_unique_id
-        |> to_string()
-
+    with nil <- get_pid(new_unique_id),
+         false <- File.exists?(evm_db_path(new_unique_id)) do
+      new_unique_id
+    else
       _ ->
         unique_id()
     end
@@ -83,6 +91,14 @@ defmodule Chain do
   """
   @spec details(Chain.evm_id()) :: {:ok, Chain.EVM.Process.t()} | {:error, term()}
   def details(_id), do: {:error, "not implemented yet"}
+
+  @doc """
+  Clean everything related to this chain.
+  If chain is running - it might cause some issues.
+  Please validate before removing.
+  """
+  @spec clean(Chain.evm_id()) :: :ok | {:error, term()}
+  def clean(_id), do: {:error, "not implemented yet"}
 
   @doc """
   Start automining feature
@@ -108,9 +124,9 @@ defmodule Chain do
   Function will return details about newly generated snapshot in format:
   `{:ok, Chain.Snapshot.Details.t()}`
   """
-  @spec take_snapshot(Chain.evm_id()) :: {:ok, binary} | {:error, term()}
-  def take_snapshot(id),
-    do: GenServer.cast(get_pid!(id), :take_snapshot)
+  @spec take_snapshot(Chain.evm_id(), binary) :: {:ok, binary} | {:error, term()}
+  def take_snapshot(id, description \\ ""),
+    do: GenServer.cast(get_pid!(id), {:take_snapshot, description})
 
   @doc """
   Revert previously generated snapshot.
@@ -178,29 +194,61 @@ defmodule Chain do
     end
   end
 
-  # Try to start evm using given module/config
-  defp start_evm(module, %Config{id: nil} = config) do
-    id = unique_id()
-
-    start_evm(module, %Config{config | id: id})
+  # Generate EVM DB path for chain
+  defp evm_db_path(id) do
+    Application.get_env(:chain, :base_path, "/tmp")
+    |> Path.expand()
+    |> Path.join(id)
   end
 
-  defp start_evm(module, %Config{id: id, db_path: ""} = config) do
-    path =
-      Application.get_env(:chain, :base_path, "/tmp")
-      |> Path.expand()
-      |> Path.join(id)
+  # Generate random port in range of 7000-8999
+  # and checks if it's already in use - regenerate it
+  defp unused_port() do
+    port =
+      7000..8999
+      |> Enum.random()
 
+    case Watcher.port_in_use?(port) do
+      false ->
+        port
+
+      true ->
+        unused_port()
+    end
+  end
+
+  # Try to start evm using given module/config
+  defp start_evm(module, %Config{id: nil} = config),
+    do: start_evm(module, %Config{config | id: unique_id()})
+
+  # if no db_path configured - system will geenrate new one
+  defp start_evm(module, %Config{id: id, db_path: ""} = config) do
+    path = evm_db_path(id)
     Logger.debug("#{id}: Chain DB path not configured will generate #{path}")
     start_evm(module, %Config{config | db_path: path})
   end
 
+  # Check http_port and assign random one
+  defp start_evm(module, %Config{http_port: nil} = config),
+    do: start_evm(module, %Config{config | http_port: unused_port()})
+
+  # For Ganache ws_port should be same as http_port
+  # so in case of different we have to reconfigure them
+  defp start_evm(Ganache, %Config{http_port: port, ws_port: ws_port} = config)
+       when port != ws_port,
+       do: start_evm(Ganache, %Config{config | ws_port: port})
+
+  # Check ws_port and assign random one
+  defp start_evm(module, %Config{ws_port: nil} = config),
+    do: start_evm(module, %Config{config | ws_port: unused_port()})
+
   defp start_evm(module, config), do: start_evm_process(module, config)
 
   # Starts new EVM genserver inser default supervisor
-  defp start_evm_process(module, %Config{id: id} = config) do
+  defp start_evm_process(module, %Config{} = config) do
     config = fix_path(config)
-    %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
+
+    %Config{id: id, http_port: http_port, ws_port: ws_port, db_path: db_path} = config
 
     unless File.exists?(db_path) do
       Logger.debug("#{id}: #{db_path} not exist, creating...")

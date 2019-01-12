@@ -10,9 +10,9 @@ use Mix.Config
 import_config "../apps/*/config/config.exs"
 
 # config :logger,
-  # backends: [:console],
-  # level: :debug,
-  # compile_time_purge_level: :debug
+# backends: [:console],
+# level: :debug,
+# compile_time_purge_level: :debug
 
 # Sample configuration (overrides the imported configuration above):
 #

@@ -13,9 +13,6 @@ So you have to join new channel after starting chain.
 ```javascript
 const options = {
     type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-    id: null, // Might be string but normally better to omit
-    http_port: 8545, // port for chain. should be changed on any new chain
-    ws_port: 8546, // ws port (only for geth) for ganache will be ignored
     accounts: 2, // Number of account to be created on chain start
     block_mine_time: 0, // how often new block should be mined (0 - instamine)
     clean_on_stop: true, // Will delete chain db folder after chain stop

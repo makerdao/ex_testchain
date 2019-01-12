@@ -5,11 +5,14 @@ defmodule WebApiWeb.ErrorViewTest do
   import Phoenix.View
 
   test "renders 404.json" do
-    assert render(WebApiWeb.ErrorView, "404.json", []) == %{errors: %{detail: "Not Found"}}
+    assert render(WebApiWeb.ErrorView, "404.json", []) == %{
+             status: 1,
+             errors: %{detail: "Not Found"}
+           }
   end
 
   test "renders 500.json" do
     assert render(WebApiWeb.ErrorView, "500.json", []) ==
-             %{errors: %{detail: "Internal Server Error"}}
+             %{status: 1, errors: %{detail: "Internal Server Error"}}
   end
 end
