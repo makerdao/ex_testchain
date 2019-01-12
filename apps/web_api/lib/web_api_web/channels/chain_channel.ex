@@ -25,10 +25,17 @@ defmodule WebApiWeb.ChainChannel do
   # Take snapshot for chain
   def handle_in(
         "take_snapshot",
-        params,
+        nil,
+        socket
+      ),
+      do: handle_in("take_snapshot", %{"description" => ""}, socket)
+
+  def handle_in(
+        "take_snapshot",
+        %{"description" => description},
         %{topic: "chain:" <> id} = socket
       ) do
-    case Chain.take_snapshot(id, Map.get(params, "description", "")) do
+    case Chain.take_snapshot(id, description) do
       :ok ->
         {:reply, {:ok, %{status: "ok"}}, socket}
 

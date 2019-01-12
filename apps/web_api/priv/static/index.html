@@ -23,7 +23,6 @@
                     .receive('ok', ({id: id}) => {
                         console.log('Created new chain', id)
                         start_channel(id)
-                            .on('started', (data) => console.log('Chain started', data))
                     })
                     .receive('error', console.error)
                     .receive('timeout', () => console.log('Network issues'))
@@ -41,7 +40,12 @@
             function start_channel(id) {
                 window[id] = socket.channel(`chain:${id}`)
                 window[id].join()
-                    .receive('ok', () => console.log('Joined channel chain', id))
+                    .receive('ok', () => {
+                        console.log('Joined channel chain', id)
+                        window[id].on('started', (data) => console.log('Chain started', data))
+                        window[id].on('snapshot_taken', (data) => console.log('Snapshot taken', data))
+                        window[id].on('snapshot_reverted', (data) => console.log('Snapshot restored', data))
+                    })
                     .receive('error', console.error)
 
                 return window[id]
@@ -57,9 +61,9 @@
                 .receive('error', console.error)
             }
 
-            function take_snapshot(id) {
-                chain(id).push('take_snapshot')
-                    .receive('ok', ({ snapshot }) => console.log('Snapshot made for chain %s with id %s', id, snapshot))
+            function take_snapshot(id, description = '') {
+                chain(id).push('take_snapshot', { description: description })
+                    .receive('ok', () => console.log('Snapshot for chain %s started', id))
                     .receive('error', console.error)
             }
 
