@@ -5,7 +5,10 @@ before_install:
   - sudo apt-get update -q
   - sudo apt-get install -y nodejs ethereum
 before_script:
-  - cd priv/presets/ganache-cli && npm install -f --no-package-lock && cd -
+  - npm install -g ganache-cli
+
+env:
+  - GANACHE_EXECUTABLE=ganache-cli
 
 elixir:
   - '1.7'
