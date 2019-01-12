@@ -201,11 +201,12 @@ defmodule Chain do
     |> Path.join(id)
   end
 
-  # Generate random port in range of 7000-8999
+  # Generate random port in range of `:r
   # and checks if it's already in use - regenerate it
   defp unused_port() do
     port =
-      7000..8999
+      :chain
+      |> Application.get_env(:evm_port_range, 8500..8600)
       |> Enum.random()
 
     case Watcher.port_in_use?(port) do
