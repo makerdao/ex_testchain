@@ -135,6 +135,7 @@ defmodule Chain.EVM do
   @callback version() :: binary
 
   defmacro __using__(_opt) do
+    # credo:disable-for-next-line
     quote do
       use GenServer, restart: :transient
 

@@ -2,14 +2,14 @@ language: elixir
 dist: xenial
 before_install:
   - sudo add-apt-repository -y ppa:ethereum/ethereum
-  - sudo curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
   - sudo apt-get update -q
-  - sudo apt-get install -y nodejs ethereum
+  - sudo apt-get install -y ethereum
 before_script:
   - npm install -g ganache-cli
 
 env:
   - GANACHE_EXECUTABLE=ganache-cli
+  - MIX_ENV=test
 
 elixir:
   - '1.7'
