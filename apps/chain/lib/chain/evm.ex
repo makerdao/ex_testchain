@@ -211,7 +211,7 @@ defmodule Chain.EVM do
             {:noreply, %State{state | internal_state: internal_state}}
 
           {:error, err} ->
-            Logger.error("#{config.id}: on start: #{err}")
+            Logger.error("#{config.id}: on start: #{inspect(err)}")
             notify_status(config, :failed)
             {:stop, {:shutdown, :failed_to_start}, %State{state | status: :failed}}
         end

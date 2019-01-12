@@ -99,7 +99,7 @@ defmodule Chain.EVM.Implementation.Geth do
   "172536bfde649d20eaf4ac7a3eab742b9a6cc373"
   ```
   """
-  @spec create_account(binary) :: {:ok, term()} | {:error, term()}
+  @spec create_account(binary) :: binary
   def create_account(db_path) do
     %{status: 0, err: nil, out: <<"Address: {", address::binary-size(40), _::binary>>} =
       "#{executable!()} account new --datadir #{db_path} --password #{password_file()} 2>/dev/null"
@@ -172,7 +172,8 @@ defmodule Chain.EVM.Implementation.Geth do
   {:ok, 80}
   ```
   """
-  @spec exec_command(binary | non_neg_integer(), binary, term()) :: Porcelain.Result.t()
+  @spec exec_command(binary | non_neg_integer(), binary, term()) ::
+          {:ok, term()} | {:error, term()}
   def exec_command(http_port, command, params \\ nil)
       when is_binary(http_port) or is_integer(http_port) do
     "http://localhost:#{http_port}"

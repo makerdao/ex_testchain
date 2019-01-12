@@ -1,4 +1,8 @@
 defmodule Chain.Test.ChainHelper do
+  @moduledoc """
+  Helper functions for tests
+  """
+
   @doc """
   Receive loop for events.
 

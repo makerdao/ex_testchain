@@ -128,10 +128,11 @@ defmodule Chain.EVM.Implementation.Ganache do
   Example: 
   ```elixir
   iex()> Chain.EVM.Implementation.Ganache.exec_command(8545, "eth_blockNumber")
-  %Porcelain.Result{err: nil, out: "80\n", status: 0} 
+  {:ok, "0x000000000000000000000000000"}
   ```
   """
-  @spec exec_command(binary | non_neg_integer(), binary, term()) :: Porcelain.Result.t()
+  @spec exec_command(binary | non_neg_integer(), binary, term()) ::
+          {:ok, term()} | {:error, term()}
   def exec_command(http_port, command, params \\ nil)
       when is_binary(http_port) or is_integer(http_port) do
     "http://localhost:#{http_port}"
@@ -206,6 +207,4 @@ defmodule Chain.EVM.Implementation.Ganache do
     {:ok, file} = File.open(path, [:binary, :append])
     file
   end
-
-  defp open_log_file(_), do: nil
 end

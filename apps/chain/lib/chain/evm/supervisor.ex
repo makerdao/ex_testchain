@@ -1,4 +1,8 @@
 defmodule Chain.EVM.Supervisor do
+  @moduledoc """
+  Supervisor that will watch all chains running
+  """
+
   # Automatically defines child_spec/1
   use DynamicSupervisor
 

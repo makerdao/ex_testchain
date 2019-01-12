@@ -45,13 +45,13 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
 
   Example: 
   ```elixir
-  iex> alias Chain.EVM.Geth.Genesis
-  Chain.EVM.Geth.Genesis
+  iex> alias Chain.EVM.Implementation.Geth.Genesis
+  Chain.EVM.Implementation.Geth.Genesis
   iex> Genesis.write(%Genesis{accounts: [{"172536bfde649d20eaf4ac7a3eab742b9a6cc373", 100000}]}, "/home/user/geth_data")
   :ok
   ```
   """
-  @spec write(Chain.EVM.Geth.Genesis.t(), binary) :: :ok | {:error, term}
+  @spec write(Chain.EVM.Implementation.Geth.Genesis.t(), binary) :: :ok | {:error, term}
   def write(%__MODULE__{} = genesis, path) do
     # create dir if not exist
     unless File.dir?(path) do
@@ -78,8 +78,8 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
         eip155Block: 0,
         eip158Block: 0
       },
-      difficulty: Map.get(genesis, :difficulty, 1) |> to_string(),
-      gasLimit: Map.get(genesis, :gas_limit, 2_100_000) |> to_string(),
+      difficulty: genesis |> Map.get(:difficulty, 1) |> to_string(),
+      gasLimit: genesis |> Map.get(:gas_limit, 2_100_000) |> to_string(),
       alloc: build_alloc(accounts)
     }
   end
@@ -88,8 +88,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
 
   defp build_alloc(accounts) do
     accounts
-    |> Enum.map(&build_account/1)
-    |> Enum.into(%{})
+    |> Enum.into(%{}, &build_account/1)
   end
 
   defp build_account({<<"0x", address::binary>>, balance}),

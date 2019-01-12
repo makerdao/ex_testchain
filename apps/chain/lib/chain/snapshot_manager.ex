@@ -64,7 +64,8 @@ defmodule Chain.SnapshotManager do
     end
 
     result =
-      Task.async(__MODULE__, :compress, [from, to])
+      __MODULE__
+      |> Task.async(:compress, [from, to])
       |> Task.await()
 
     case result do
@@ -100,7 +101,8 @@ defmodule Chain.SnapshotManager do
     end
 
     result =
-      Task.async(__MODULE__, :extract, [from, to])
+      __MODULE__
+      |> Task.async(:extract, [from, to])
       |> Task.await()
 
     case result do
@@ -139,7 +141,8 @@ defmodule Chain.SnapshotManager do
   """
   @spec by_chain(Chain.evm_type()) :: [Chain.Snapshot.Details.t()]
   def by_chain(chain) do
-    :dets.match(@table, {:_, chain, :"$1"})
+    @table
+    |> :dets.match({:_, chain, :"$1"})
     |> Enum.map(fn [snap] -> snap end)
   end
 
@@ -219,10 +222,6 @@ defmodule Chain.SnapshotManager do
 
       %Result{status: status, err: err} ->
         {:error, "Failed with status: #{inspect(status)} and error: #{inspect(err)}"}
-
-      res ->
-        Logger.error(res)
-        {:error, "Unknown error"}
     end
   end
 

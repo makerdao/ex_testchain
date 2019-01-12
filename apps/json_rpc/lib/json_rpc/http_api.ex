@@ -1,4 +1,7 @@
 defmodule JsonRpc.HttpApi do
+  @moduledoc """
+  Base http layer
+  """
   use HTTPoison.Base
 
   require Logger
@@ -39,7 +42,8 @@ defmodule JsonRpc.HttpApi do
 
     Logger.debug("#{__MODULE__}: #{inspect(req)}")
 
-    post(url, req, [{"Content-Type", "application/json"}])
+    url
+    |> post(req, [{"Content-Type", "application/json"}])
     |> fetch_body()
   end
 

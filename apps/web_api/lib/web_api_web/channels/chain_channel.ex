@@ -1,4 +1,8 @@
 defmodule WebApiWeb.ChainChannel do
+  @moduledoc """
+  Controlling functions for specified chains
+  """
+
   require Logger
 
   use Phoenix.Channel, log_join: false, log_handle_in: :debug

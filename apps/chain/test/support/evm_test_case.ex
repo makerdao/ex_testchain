@@ -1,4 +1,10 @@
 defmodule Chain.Test.EVMTestCase do
+  @moduledoc """
+  Default test for every EVM.
+
+  All EVMs (chains) have to pass this test
+  """
+
   defmacro __using__(opts) do
     quote do
       use ExUnit.Case, async: true

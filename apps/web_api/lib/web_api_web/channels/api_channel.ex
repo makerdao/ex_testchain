@@ -1,4 +1,8 @@
 defmodule WebApiWeb.ApiChannel do
+  @moduledoc """
+  Default channel for API manipulation
+  """
+
   use Phoenix.Channel, log_join: false, log_handle_in: :debug
 
   alias Chain.EVM.Config

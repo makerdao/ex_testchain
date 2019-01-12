@@ -124,7 +124,7 @@ defmodule Chain do
   Function will return details about newly generated snapshot in format:
   `{:ok, Chain.Snapshot.Details.t()}`
   """
-  @spec take_snapshot(Chain.evm_id(), binary) :: {:ok, binary} | {:error, term()}
+  @spec take_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
   def take_snapshot(id, description \\ ""),
     do: GenServer.cast(get_pid!(id), {:take_snapshot, description})
 
