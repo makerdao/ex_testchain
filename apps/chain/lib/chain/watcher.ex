@@ -47,14 +47,9 @@ defmodule Chain.Watcher do
 
   @doc false
   def handle_call({:watch, http, ws, db}, {from, _}, []) do
-    case :ets.insert(@table, {from, http, ws, db}) do
-      true ->
-        Process.monitor(from)
-        {:reply, :ok, []}
-
-      _ ->
-        {:reply, {:error, "failed to insert"}, []}
-    end
+    :ets.insert(@table, {from, http, ws, db})
+    Process.monitor(from)
+    {:reply, :ok, []}
   end
 
   # Handle process termination

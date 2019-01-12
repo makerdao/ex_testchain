@@ -15,6 +15,10 @@ defmodule TestChain.MixProject do
   #
   # Run "mix help deps" for examples and options.
   defp deps do
-    [{:distillery, "~> 2.0"}]
+    [
+      {:distillery, "~> 2.0"},
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false}
+    ]
   end
 end

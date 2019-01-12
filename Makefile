@@ -4,12 +4,26 @@ APP_NAME ?= ex_testchain
 APP_VSN ?= 0.1.0
 BUILD ?= `git rev-parse --short HEAD`
 ALPINE_VERSION ?= edge
+DOCKER_ID_USER ?= makerdao
 
 help:
 	@echo "$(EVM_NAME):$(EVM_VSN)-$(BUILD)"
 	@echo "$(APP_NAME):$(APP_VSN)-$(BUILD)"
 	@perl -nle'print $& if m{^[a-zA-Z_-]+:.*?## .*$$}' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
+
+lint:
+	@mix dialyzer --format dialyxir --quiet
+	@mix credo
+.PHONY: lint
+
+docker-push:
+	@echo "Pushing docker images"
+	@docker tag $(EVM_NAME):$(EVM_VSN)-$(BUILD) $(DOCKER_ID_USER)/$(EVM_NAME)
+	@docker push $(DOCKER_ID_USER)/$(EVM_NAME)
+	@docker tag $(APP_NAME):$(APP_VSN)-$(BUILD) $(DOCKER_ID_USER)/$(APP_NAME)
+	@docker push $(DOCKER_ID_USER)/$(APP_NAME)
+.PHONY: docker-push
 
 deps: ## Load all required deps for project
 	@mix do deps.get, deps.compile

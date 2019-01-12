@@ -13,18 +13,14 @@ So you have to join new channel after starting chain.
 ```javascript
 const options = {
     type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-    id: null, // Might be string but normally better to omit
-    http_port: 8545, // port for chain. should be changed on any new chain
-    ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-    accounts: 2, // Number of account to be created on chain start
+    accounts: 2, // Number of account to be created on chain start (1 - if ommited)
     block_mine_time: 0, // how often new block should be mined (0 - instamine)
     clean_on_stop: true, // Will delete chain db folder after chain stop
 }
 api.push("start", options)
     .receive("ok", ({id: id}) => {
-    console.log('Created new chain', id)
-    start_channel(id)
-        .on('started', (data) => console.log('Chain started', data))
+        console.log('Created new chain', id)
+        start_channel(id)
     })
     .receive('error', console.error)
     .receive('timeout', () => console.log('Network issues'))
@@ -46,13 +42,9 @@ All description is based on [Phoenix.Message](https://hexdocs.pm/phoenix/channel
     event: 'start',
     payload: {
         type: "geth", // For now "geth" or "ganache". (If omited - "ganache" will be used)
-        id: null, // Might be string but normally better to omit
-        http_port: 8545, // port for chain. should be changed on any new chain
-        ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-        accounts: 2, // Number of account to be created on chain start
+        accounts: 2, // Number of account to be created on chain start (optional, default is 1)
         block_mine_time: 0, // how often new block should be mined (0 - instamine)
         clean_on_stop: true, // Will delete chain db folder after chain stop
-        db_path: "/opt/my-awesome-chain" // For existing chain data. be sure you mounted volume to docker
     }
 }
 ```
@@ -89,18 +81,20 @@ chain_channel
 {
     topic: `chain:${chain_id}`,
     event: 'take_snapshot',
-    payload: {}
+    payload: {
+        description: "" // If description is not empty string - snapshot will be stored in DB
+    }
 }
 ```
 
-And will get response with snapshot ID 
-Example: `{snapshot: 'some/snapshot/id'}`
+And will get response with no values.
+You have to handle `snapshot_taken` event with all details from snapshot
 
 Example of action:
 ```js
 chain_channel
     .push('take_snapshot')
-    .receive('ok', ({ snapshot }) => console.log('Snapshot made for chain %s snapshot: %s', id, snapshot))
+    .receive('ok', () => console.log('Snapshot for chain %s processing', id))
     .receive('error', console.error)
 ```
 
@@ -111,17 +105,18 @@ chain_channel
     topic: `chain:${chain_id}`,
     event: 'revert_snapshot',
     payload: {
-        snapshot: 'some/snapshot/id'
+        snapshot: 'some-snapshot-id' // normaly it will be something like: '3680968141515592180'
     }
 }
 ```
 
 And empty response will mean everything - good.
+You will have to wait `snapshot_reverted` event
 
 Example of action:
 ```js
 chain_channel
-    .push('revert_snapshot', { snapshot: snapshot_id_we_got_from_take_snapshot })
+    .push('revert_snapshot', { snapshot: snapshot_id_we_got })
     .receive('ok', () => console.log('Snapshot restored for chain %s', id))
     .receive('error', console.error)
 ```
@@ -146,7 +141,13 @@ channel
 channel.on('started', (data) => console.log('Chain started', data))
 channel.on('error', (err) => console.error('Chain received error', err))
 channel.on('stopped', (data) => console.log('Chain stopped', data))
+channel.on('snapshot_taken', (data) => console.log('Snapshot taked', snapsht_data))
+channel.on('snapshot_reverted', (data) => console.log('Snapshot reverted', data))
 ```
+
+**Note**: 
+After some actions like `take_snapshot` and `revert_snapshot` chain will be restarted
+And you will receive `started` event again when chain will become operational
 
 List of available events:
  - `started`
@@ -192,7 +193,11 @@ Event will be fired to `chain:${id}` channel.
 Payload example: 
 ```js
 {
-    "path_to": "/tmp/snapshots/15685858230525373105/17638247996621996374"
+    chain: "geth",
+    date: "2019-01-12T16:25:29.278712Z",
+    description: "test",
+    id: "3680968141515592180",
+    path: "/tmp/snapshots/3680968141515592180.tgz"
 }
 ```
 
@@ -203,7 +208,11 @@ Event will be fired to `chain:${id}` channel
 Payload example:
 ```js
 {
-    "path_from": "/tmp/snapshots/15685858230525373105/17638247996621996374"
+    chain: "geth",
+    date: "2019-01-12T16:25:29.278712Z",
+    description: "test",
+    id: "3680968141515592180",
+    path: "/tmp/snapshots/3680968141515592180.tgz"
 }
 ```
 

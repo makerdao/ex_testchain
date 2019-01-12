@@ -5,7 +5,6 @@ defmodule Chain.EVM.Implementation.Geth do
   use Chain.EVM
 
   alias Chain.EVM.Config
-  alias Chain.EVM.Notification
   alias Chain.EVM.Implementation.Geth.Genesis
 
   require Logger
@@ -20,7 +19,7 @@ defmodule Chain.EVM.Implementation.Geth do
           create_accounts(Map.get(config, :accounts), db_path)
 
         _ ->
-          Logger.warn("#{id} Path #{db_path} is not empty. New accounts would not be created.")
+          Logger.info("#{id} Path #{db_path} is not empty. New accounts would not be created.")
           {:ok, list} = load_existing_accounts(db_path)
           list
       end
@@ -53,10 +52,7 @@ defmodule Chain.EVM.Implementation.Geth do
 
   @impl Chain.EVM
   def stop(_, %{port: port} = state) do
-    # send_command(port, "exit")
-    # Have to stop process usign sigterm
-    # otherwise it return bad exit code
-    true = Porcelain.Process.stop(port)
+    send_command(port, "exit")
     {:ok, state}
   end
 
@@ -73,95 +69,15 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def take_snapshot(
-        path_to,
-        %{id: id} = config,
-        %{accounts: accounts} = state
-      ) do
-    Logger.debug("#{id}: Making snapshot")
-
-    db_path = Map.get(config, :db_path)
-
-    unless File.dir?(path_to) do
-      Logger.debug("#{id}: Creating new path for snapshot #{path_to}")
-      :ok = File.mkdir_p!(path_to)
-    end
-
-    # Check if folder is empty
-    case File.ls(path_to) do
-      {:ok, []} ->
-        Logger.debug("#{id} Stopping chain before snapshot")
-        {:ok, _} = stop(config, state)
-
-        {:ok, _} = File.cp_r(db_path, path_to)
-        Logger.debug("#{id}: Snapshot made to #{path_to}")
-
-        %{err: nil} = port = start_node(config, accounts)
-        Logger.debug("#{id} Starting chain after making a snapshot")
-
-        :ok = wait_started(config, state)
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{id: id, event: :snapshot_taken, data: %{path_to: path_to}})
-        end
-
-        # Returning spanshot details
-        {:reply, {:ok, path_to}, %{state | port: port}}
-
-      _ ->
-        {:reply, {:error, "#{path_to} is not empty"}, state}
-    end
-  end
-
-  @impl Chain.EVM
-  def revert_snapshot(path_from, %{id: id} = config, %{accounts: accounts} = state) do
-    Logger.debug("#{id} restoring snapshot from #{path_from}")
-
-    db_path = Map.get(config, :db_path)
-
-    case File.dir?(path_from) do
-      false ->
-        {:reply, {:error, "No such directory #{path_from}"}, state}
-
-      true ->
-        Logger.debug("#{id} Stopping chain before restoring snapshot")
-        {:ok, _} = stop(config, state)
-
-        if File.dir?(db_path) do
-          {:ok, _} = File.rm_rf(db_path)
-          :ok = File.mkdir(db_path)
-        end
-
-        {:ok, _} = File.cp_r(path_from, db_path)
-
-        %{err: nil} = port = start_node(config, accounts)
-        Logger.debug("#{id} Starting chain after restoring a snapshot")
-
-        :ok = wait_started(config, state)
-        Logger.debug("#{id} Chain restored snapshot from #{path_from}")
-
-        if pid = Map.get(config, :notify_pid) do
-          send(pid, %Notification{
-            id: id,
-            event: :snapshot_reverted,
-            data: %{path_from: path_from}
-          })
-        end
-
-        # Returning spanshot details
-        {:reply, :ok, %{state | port: port}}
-    end
-  end
-
-  @impl Chain.EVM
-  def terminate(id, _config, %{port: port} = state) do
-    Logger.info("#{id}: Terminating... #{inspect(state)}")
-    Porcelain.Process.stop(port)
+  def terminate(id, config, nil) do
+    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok
   end
 
-  def terminate(id, config, nil) do
-    Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
+  @impl Chain.EVM
+  def terminate(id, _config, state) do
+    Logger.debug("#{id}: Terminating... #{inspect(state)}")
+    # Porcelain.Process.stop(port)
     :ok
   end
 
@@ -183,7 +99,7 @@ defmodule Chain.EVM.Implementation.Geth do
   "172536bfde649d20eaf4ac7a3eab742b9a6cc373"
   ```
   """
-  @spec create_account(binary) :: {:ok, term()} | {:error, term()}
+  @spec create_account(binary) :: binary
   def create_account(db_path) do
     %{status: 0, err: nil, out: <<"Address: {", address::binary-size(40), _::binary>>} =
       "#{executable!()} account new --datadir #{db_path} --password #{password_file()} 2>/dev/null"
@@ -256,7 +172,8 @@ defmodule Chain.EVM.Implementation.Geth do
   {:ok, 80}
   ```
   """
-  @spec exec_command(binary | non_neg_integer(), binary, term()) :: Porcelain.Result.t()
+  @spec exec_command(binary | non_neg_integer(), binary, term()) ::
+          {:ok, term()} | {:error, term()}
   def exec_command(http_port, command, params \\ nil)
       when is_binary(http_port) or is_integer(http_port) do
     "http://localhost:#{http_port}"
@@ -373,6 +290,7 @@ defmodule Chain.EVM.Implementation.Geth do
   # This action will send command directly to started node console.
   # Without attaching. 
   # If you will send breacking command - node might exit
+
   defp send_command(port, command) do
     Porcelain.Process.send_input(port, command <> "\n")
     :ok
@@ -405,24 +323,6 @@ defmodule Chain.EVM.Implementation.Geth do
 
       _ ->
         ""
-    end
-  end
-
-  # waiting for 30 secs geth to start if not started - raising error
-  defp wait_started(config, state, times \\ 0)
-
-  defp wait_started(%{id: id}, _state, times) when times >= 150,
-    do: raise("#{id} Timeout waiting geth to start...")
-
-  defp wait_started(config, state, times) do
-    case started?(config, state) do
-      true ->
-        :ok
-
-      _ ->
-        # Waiting
-        :timer.sleep(200)
-        wait_started(config, state, times + 1)
     end
   end
 end

@@ -10,6 +10,7 @@ defmodule Chain.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.7",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -23,12 +24,18 @@ defmodule Chain.MixProject do
     ]
   end
 
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["test/support" | elixirc_paths()]
+  defp elixirc_paths(_), do: elixirc_paths()
+  defp elixirc_paths, do: ["lib"]
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:poison, "~> 3.1"},
       {:porcelain, "~> 2.0"},
-      {:json_rpc, in_umbrella: true}
+      {:json_rpc, in_umbrella: true},
+      {:faker, "~> 0.11", only: :test}
     ]
   end
 end

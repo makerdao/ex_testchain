@@ -30,7 +30,8 @@ defmodule WebApi.ChainMessageHandler do
   def handle_info(%Notification{id: id, event: event, data: data}, state) do
     # Check if we have direct requests for handler
     # Note :ets will return result as [[pid, socket_ref]]
-    :ets.match(@table, {id, event, :"$1", :"$2"})
+    @table
+    |> :ets.match({id, event, :"$1", :"$2"})
     |> Enum.each(fn [pid, socket_ref] ->
       send(pid, {event, data, socket_ref})
       # removing from list

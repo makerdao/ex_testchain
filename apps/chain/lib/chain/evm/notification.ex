@@ -9,10 +9,9 @@ defmodule Chain.EVM.Notification do
   %Chain.EVM.Notification{
     id: "15054686724791906538",
     event: :started, 
-    data: %Chain.EVM.Process{
+    data: %{
       accounts: ["0x51ef0fe1fe60af27f400ab42ddc9a6b99b277d38"],
       coinbase: "0x51ef0fe1fe60af27f400ab42ddc9a6b99b277d38",
-      id: "15054686724791906538",
       rpc_url: "http://localhost:8545",
       ws_url: "ws://localhost:8546"
     }
@@ -23,7 +22,8 @@ defmodule Chain.EVM.Notification do
   @typedoc """
   Event type that should be sent by chain implementation
   """
-  @type event :: :started | :stopped | :error | :snapshot_taken | :snapshot_reverted
+  @type event ::
+          :started | :stopped | :error | :snapshot_taken | :snapshot_reverted | :status_changed
 
   @type t :: %__MODULE__{
           id: Chain.evm_id(),
