@@ -1,4 +1,5 @@
 # TestChain
+[![Build Status](https://travis-ci.org/makerdao/ex_testchain.svg?branch=master)](https://travis-ci.org/makerdao/ex_testchain)
 
 This is Elixir MVP implementation of Testchain as a Service.
 
