@@ -34,6 +34,24 @@ Some examples you might be find in [index.html](../apps/web_api/priv/static/inde
 
 All description is based on [Phoenix.Message](https://hexdocs.pm/phoenix/channels.html#messages) scructure 
 
+### List of all chains
+```js
+{
+    topic: 'api',
+    event: 'list_chains',
+    payload: {}
+}
+```
+
+And in response you will get list of available snapshots with details
+
+```js
+api_channel
+    .push('list_chains')
+    .receive('ok', ({ chains: chains }) => console.log('Chains list', chains))
+    .receive('error', console.error)
+```
+
 ### Starting new chain
 
 ```js

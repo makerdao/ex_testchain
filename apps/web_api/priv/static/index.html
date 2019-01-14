@@ -29,12 +29,21 @@
             }
 
             function list_snapshots(chain) {
-                api.push('snapshots', {chain: chain})
+                api.push('list_snapshots', {chain: chain})
                     .receive('ok', ({ snapshots }) => {
                         console.log("List of snapshots:", snapshots)
                     })
                     .receive('error', console.error)
                     .receive('timeout', () => console.log('Timeout loading list of snapshots'))
+            }
+
+            function list_chains() {
+                api.push('list_chains', {})
+                    .receive('ok', ({ chains }) => {
+                        console.log("List of chains:", chains)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Timeout loading list of chains'))
             }
 
             function start_channel(id) {
