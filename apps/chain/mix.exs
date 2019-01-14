@@ -35,6 +35,7 @@ defmodule Chain.MixProject do
       {:poison, "~> 3.1"},
       {:porcelain, "~> 2.0"},
       {:json_rpc, in_umbrella: true},
+      {:storage, in_umbrella: true},
       {:faker, "~> 0.11", only: :test}
     ]
   end

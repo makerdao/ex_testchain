@@ -11,7 +11,7 @@ defmodule Storage do
 
   def store(%{__struct__: _} = config, status, other) do
     config
-    |> Enum.into(%{})
+    |> Map.from_struct()
     |> store(status, other)
   end
 
