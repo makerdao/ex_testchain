@@ -34,6 +34,24 @@ Some examples you might be find in [index.html](../apps/web_api/priv/static/inde
 
 All description is based on [Phoenix.Message](https://hexdocs.pm/phoenix/channels.html#messages) scructure 
 
+### List of all chains
+```js
+{
+    topic: 'api',
+    event: 'list_chains',
+    payload: {}
+}
+```
+
+And in response you will get list of available snapshots with details
+
+```js
+api_channel
+    .push('list_chains')
+    .receive('ok', ({ chains: chains }) => console.log('Chains list', chains))
+    .receive('error', console.error)
+```
+
 ### Starting new chain
 
 ```js
@@ -118,6 +136,25 @@ Example of action:
 chain_channel
     .push('revert_snapshot', { snapshot: snapshot_id_we_got })
     .receive('ok', () => console.log('Snapshot restored for chain %s', id))
+    .receive('error', console.error)
+```
+
+### Removing chain
+```js
+{
+    topic: `api`,
+    event: 'remove_chain',
+    payload: {
+        id: 'some-chain-id' // normaly it will be something like: '3680968141515592180'
+    }
+}
+```
+
+Example of action:
+```js
+api_channel
+    .push('remove_chain', { id: chain_id })
+    .receive('ok', () => console.log('Chain removed %s', id))
     .receive('error', console.error)
 ```
 

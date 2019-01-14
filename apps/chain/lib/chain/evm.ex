@@ -529,6 +529,9 @@ defmodule Chain.EVM do
         # `GenServer.terminate/2` 
         res = terminate(config.id, config, internal_state)
 
+        # Notify that status changed to :terminated
+        notify_status(config, :terminated)
+
         # Check and clean path for all chains
         if Map.get(config, :clean_on_stop) do
           db_path = Map.get(config, :db_path)
@@ -634,14 +637,22 @@ defmodule Chain.EVM do
       ########
 
       # notify listener about evm status change
-      defp notify_status(%Config{id: id, notify_pid: nil}, _), do: :ok
+      defp notify_status(%Config{id: id, notify_pid: pid, clean_on_stop: clean} = config, status) do
+        if pid do
+          send(pid, %Notification{
+            id: id,
+            event: :status_changed,
+            data: status
+          })
+        end
 
-      defp notify_status(%Config{id: id, notify_pid: pid}, status) do
-        send(pid, %Notification{
-          id: id,
-          event: :status_changed,
-          data: status
-        })
+        unless clean do
+          Storage.store(config, status)
+        end
+      end
+
+      defp save_chain_status(config, status) do
+        Storage.store(config, status)
       end
 
       # Internal handler for evm actions

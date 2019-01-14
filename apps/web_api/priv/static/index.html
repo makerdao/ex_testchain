@@ -29,12 +29,21 @@
             }
 
             function list_snapshots(chain) {
-                api.push('snapshots', {chain: chain})
+                api.push('list_snapshots', {chain: chain})
                     .receive('ok', ({ snapshots }) => {
                         console.log("List of snapshots:", snapshots)
                     })
                     .receive('error', console.error)
                     .receive('timeout', () => console.log('Timeout loading list of snapshots'))
+            }
+
+            function list_chains() {
+                api.push('list_chains', {})
+                    .receive('ok', ({ chains }) => {
+                        console.log("List of chains:", chains)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Timeout loading list of chains'))
             }
 
             function start_channel(id) {
@@ -70,6 +79,12 @@
             function revert_snapshot(id, snapshot) {
                 chain(id).push('revert_snapshot', { snapshot })
                     .receive('ok', () => console.log('Snapshot %s reverted to chain %s', snapshot, id))
+                    .receive('error', console.error)
+            }
+
+            function remove_chain(id) {
+                api.push('remove_chain', { id: id })
+                    .receive('ok', () => console.log('Chain removed'))
                     .receive('error', console.error)
             }
         </script>
@@ -147,6 +162,12 @@
             function revert_snapshot(id, snapshot) {
                 chain(id).push('revert_snapshot', { snapshot })
                     .receive('ok', () => console.log('Snapshot %s reverted to chain %s', snapshot, id))
+                    .receive('error', console.error)
+            }
+
+            function remove_chain(id) {
+                api.push('remove_chain', { id: id })
+                    .receive('ok', () => console.log('Chain removed'))
                     .receive('error', console.error)
             }
         </pre>

@@ -58,7 +58,12 @@ defmodule Chain do
   Check if chain with given id exist
   """
   @spec exists?(Chain.evm_id()) :: boolean()
-  def exists?(id), do: nil != get_pid(id)
+  def exists?(id) do
+    pid = get_pid(id)
+    res = Storage.get(id)
+
+    pid != nil || res != nil
+  end
 
   @doc """
   Check if chain with given id exist and alive
@@ -78,6 +83,7 @@ defmodule Chain do
     new_unique_id = to_string(new_unique_id)
 
     with nil <- get_pid(new_unique_id),
+         nil <- Storage.get(new_unique_id),
          false <- File.exists?(evm_db_path(new_unique_id)) do
       new_unique_id
     else
@@ -98,7 +104,17 @@ defmodule Chain do
   Please validate before removing.
   """
   @spec clean(Chain.evm_id()) :: :ok | {:error, term()}
-  def clean(_id), do: {:error, "not implemented yet"}
+  def clean(id) do
+    with nil <- get_pid(id),
+         %{id: ^id, db_path: path} <- Storage.get(id),
+         {:ok, _} <- File.rm_rf(path),
+         :ok <- Storage.remove(id) do
+      :ok
+    else
+      _ ->
+        {:error, "#{id} error removing chain details"}
+    end
+  end
 
   @doc """
   Start automining feature
@@ -165,9 +181,9 @@ defmodule Chain do
     Application version: #{to_string(v)}
 
     ==========================================
-    #{Chain.EVM.Implementation.Geth.version()}
+    #{Geth.version()}
     ==========================================
-    #{Chain.EVM.Implementation.Ganache.version()}
+    #{Ganache.version()}
     ==========================================
     """
   end
