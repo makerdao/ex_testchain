@@ -13,7 +13,6 @@ defmodule Chain.EVM do
 
   @typedoc """
   List of EVM lifecircle statuses
-  TODO: check `:terminated` status. It should be set to chain that stopped but was not removed from DB
 
   Meanings: 
    
@@ -205,7 +204,14 @@ defmodule Chain.EVM do
             check_started(self())
 
             # Adding chain process to `Chain.Watcher`
-            %Config{http_port: http_port, ws_port: ws_port, db_path: db_path} = config
+            %Config{http_port: http_port, ws_port: ws_port, db_path: db_path, notify_pid: pid} =
+              config
+
+            # Add process monitor for handling pid crash
+            if pid do
+              Process.monitor(pid)
+            end
+
             Chain.Watcher.watch(http_port, ws_port, db_path)
 
             # Added. finishing
@@ -234,6 +240,13 @@ defmodule Chain.EVM do
         # See: `handle_info({:check_started, _})`
         check_started(self())
         {:noreply, %State{state | internal_state: new_state}}
+      end
+
+      @doc false
+      def handle_info({:DOWN, ref, :process, pid, _}, %State{config: config} = state) do
+        Logger.warn("#{config.id} Chain monitoring process failed #{inspect(pid)}")
+        Process.demonitor(ref)
+        {:noreply, state}
       end
 
       @doc false

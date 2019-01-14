@@ -48,6 +48,38 @@ defmodule Chain do
   def start(%Config{type: _}), do: {:error, :unsuported_evm_type}
 
   @doc """
+  Try starting existing stored chain.
+
+  Note: `http_port`, `ws_port` and `notification_pid` will be overwriten !
+  """
+  @spec start_existing(Chain.evm_id(), nil | pid()) :: {:ok, Chain.evm_id()} | {:error, term()}
+  def start_existing(id, notify_pid \\ nil) do
+    with nil <- get_pid(id),
+         %{db_path: db_path} = details <- Storage.get(id),
+         true <- File.dir?(db_path) do
+      config =
+        details
+        |> Map.drop([:status, :http_port, :ws_port])
+        |> Map.put(:notify_pid, notify_pid)
+
+      Logger.debug("#{id} starting existing chain from storage with config #{inspect(config)}")
+
+      Config
+      |> struct(config)
+      |> start()
+    else
+      pid when is_pid(pid) ->
+        {:error, "chain #{id} is already alive !"}
+
+      nil ->
+        {:error, "no configuration exist in storage for chain id #{id}"}
+
+      false ->
+        {:error, "no folder with chain data exist for chain id #{id}"}
+    end
+  end
+
+  @doc """
   Stop started EVM instance
   """
   @spec stop(Chain.evm_id()) :: :ok
