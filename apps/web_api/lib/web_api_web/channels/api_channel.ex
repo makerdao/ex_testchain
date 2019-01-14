@@ -41,7 +41,20 @@ defmodule WebApiWeb.ApiChannel do
   @doc """
   Get list of snapshots for given chain type
   """
-  def handle_in("listSnapshots", %{"chain" => chain}, socket) do
+  def handle_in("list_snapshots", %{"chain" => chain}, socket) do
     {:reply, {:ok, %{snapshots: Chain.SnapshotManager.by_chain(chain)}}, socket}
+  end
+
+  def handle_in("remove_chain", %{"id" => id}, socket) do
+    with false <- Chain.alive?(id),
+         :ok <- Chain.clean(id) do
+      {:reply, {:ok, %{message: "Chain removed"}}, socket}
+    else
+      true ->
+        {:reply, {:error, %{message: "Chain is running. Could not be removed"}}, socket}
+
+      _ ->
+        {:reply, {:error, %{message: "Something wrong on removing chain"}}, socket}
+    end
   end
 end

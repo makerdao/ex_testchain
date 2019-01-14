@@ -121,6 +121,25 @@ chain_channel
     .receive('error', console.error)
 ```
 
+### Removing chain
+```js
+{
+    topic: `api`,
+    event: 'remove_chain',
+    payload: {
+        id: 'some-chain-id' // normaly it will be something like: '3680968141515592180'
+    }
+}
+```
+
+Example of action:
+```js
+api_channel
+    .push('remove_chain', { id: chain_id })
+    .receive('ok', () => console.log('Chain removed %s', id))
+    .receive('error', console.error)
+```
+
 ## Events
 Because some operations might take some time or for example errors might appear randomly
 ex_testchain provides you with set of events for handling such situations.

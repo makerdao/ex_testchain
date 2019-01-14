@@ -72,6 +72,12 @@
                     .receive('ok', () => console.log('Snapshot %s reverted to chain %s', snapshot, id))
                     .receive('error', console.error)
             }
+
+            function remove_chain(id) {
+                api.push('remove_chain', { id: id })
+                    .receive('ok', () => console.log('Chain removed'))
+                    .receive('error', console.error)
+            }
         </script>
     </head>
     <body>
@@ -147,6 +153,12 @@
             function revert_snapshot(id, snapshot) {
                 chain(id).push('revert_snapshot', { snapshot })
                     .receive('ok', () => console.log('Snapshot %s reverted to chain %s', snapshot, id))
+                    .receive('error', console.error)
+            }
+
+            function remove_chain(id) {
+                api.push('remove_chain', { id: id })
+                    .receive('ok', () => console.log('Chain removed'))
                     .receive('error', console.error)
             }
         </pre>
