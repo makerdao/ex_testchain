@@ -74,6 +74,25 @@ Example: `{id: "15733048862987664459"}`
 Returned ID does not mean that chain started successfully.
 You have to wait for event from chain channel. See [Events](#events)
 
+### Start exising chain from storage
+
+```js
+{
+    topic: 'api',
+    event: 'start_existing',
+    payload: {
+      id: '15733048862987664459'
+    }
+}
+```
+
+As response you will get chain id that initializing. 
+Example: `{id: "15733048862987664459"}`
+
+**Note** 
+Returned ID does not mean that chain started successfully.
+You have to wait for event from chain channel. See [Events](#events)
+
 ### Stoping chain
 
 ```js
