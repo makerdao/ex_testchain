@@ -34,6 +34,8 @@ config :chain, snapshot_base_path: "/tmp/snapshots"
 # List of ports available for evm allocation
 config :chain, evm_port_range: 8500..8600
 
+config :chain, backend_proxy_node: :"backend@127.0.0.1"
+
 # Default location of account password file. 
 # For dev env it will be in related to project root. In Docker it will be replaced with 
 # file from `rel/config/config.exs`

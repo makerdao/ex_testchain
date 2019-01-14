@@ -28,6 +28,17 @@
                     .receive('timeout', () => console.log('Network issues'))
             }
 
+            function start_existing(id) {
+                api.push('start_existing', { id })
+                    .receive('ok', ({id: id}) => {
+                        console.log('Starting existing chain', id)
+                        start_channel(id)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Network issues'))
+
+            }
+
             function list_snapshots(chain) {
                 api.push('list_snapshots', {chain: chain})
                     .receive('ok', ({ snapshots }) => {
@@ -118,6 +129,17 @@
                     })
                     .receive('error', console.error)
                     .receive('timeout', () => console.log('Network issues'))
+            }
+
+            function start_existing(id) {
+                api.push('start_existing', { id })
+                    .receive('ok', ({id: id}) => {
+                        console.log('Starting existing chain', id)
+                        start_channel(id)
+                    })
+                    .receive('error', console.error)
+                    .receive('timeout', () => console.log('Network issues'))
+
             }
 
             function list_snapshots(chain) {

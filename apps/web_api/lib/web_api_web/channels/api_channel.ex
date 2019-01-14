@@ -41,6 +41,21 @@ defmodule WebApiWeb.ApiChannel do
   end
 
   @doc """
+  Start existing chain
+  """
+  def handle_in("start_existing", %{"id" => id}, socket) do
+    case Chain.start_existing(id, ChainMessageHandler) do
+      {:ok, id} ->
+        # Subscribing to notification :started and sending response to socket
+        # ChainMessageHandler.notify_on(id, :started, self(), socket_ref(socket))
+        {:reply, {:ok, %{id: id}}, socket}
+
+      {:error, err} ->
+        {:reply, {:error, %{message: err}}, socket}
+    end
+  end
+
+  @doc """
   Get list of snapshots for given chain type
   """
   def handle_in("list_snapshots", %{"chain" => chain}, socket) do
