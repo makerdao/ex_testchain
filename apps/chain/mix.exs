@@ -34,6 +34,8 @@ defmodule Chain.MixProject do
     [
       {:poison, "~> 3.1"},
       {:porcelain, "~> 2.0"},
+      {:poolboy, "~> 1.5.1"},
+      {:ethereum_wallet, github: "onyxrev/ethereum_wallet_elixir"},
       {:json_rpc, in_umbrella: true},
       {:storage, in_umbrella: true},
       {:faker, "~> 0.11", only: :test}

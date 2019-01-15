@@ -5,6 +5,8 @@ defmodule Chain.Application do
 
   use Application
 
+  alias Chain.EVM.Implementation.Geth.AccountsCreator
+
   require Logger
 
   def start(_type, _args) do
@@ -15,7 +17,8 @@ defmodule Chain.Application do
       Chain.EVM.Supervisor,
       {Registry, keys: :unique, name: Chain.EVM.Registry},
       Chain.Watcher,
-      Chain.SnapshotManager
+      Chain.SnapshotManager,
+      :poolboy.child_spec(:worker, AccountsCreator.poolboy_config())
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

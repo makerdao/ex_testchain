@@ -4,12 +4,14 @@ defmodule Chain.EVM.Implementation.Ganache do
   """
   use Chain.EVM
 
+  alias Chain.EVM.Account
   alias Chain.EVM.Config
 
   @impl Chain.EVM
-  def start(%Config{id: id} = config) do
+  def start(%Config{id: id, accounts: amount} = config) do
     Logger.debug("#{id}: Starting ganache-cli")
-    %{err: nil} = port = start_node(config)
+    accounts = generate_accounts(amount)
+    %{err: nil} = port = start_node(config, accounts)
 
     file = open_log_file(config)
 
@@ -113,9 +115,9 @@ defmodule Chain.EVM.Implementation.Ganache do
   @doc """
   Starting new ganache node based on given config
   """
-  @spec start_node(Chain.EVM.Config.t()) :: Porcelain.Process.t()
-  def start_node(config) do
-    Porcelain.spawn_shell(build_command(config), out: {:send, self()})
+  @spec start_node(Chain.EVM.Config.t(), [Chain.EVM.Account.t()]) :: Porcelain.Process.t()
+  def start_node(config, accounts) do
+    Porcelain.spawn_shell(build_command(config, accounts), out: {:send, self()})
   end
 
   @doc """
@@ -140,14 +142,16 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   # Build command for starting ganache-cli
-  defp build_command(%Config{
-         db_path: db_path,
-         network_id: network_id,
-         http_port: http_port,
-         accounts: accounts,
-         output: output,
-         block_mine_time: block_mine_time
-       }) do
+  defp build_command(
+         %Config{
+           db_path: db_path,
+           network_id: network_id,
+           http_port: http_port,
+           output: output,
+           block_mine_time: block_mine_time
+         },
+         accounts
+       ) do
     wrapper_file =
       :chain
       |> Application.get_env(:ganache_wrapper_file)
@@ -165,11 +169,24 @@ defmodule Chain.EVM.Implementation.Ganache do
       "--noVMErrorsOnRPCResponse",
       "-i #{network_id}",
       "-p #{http_port}",
-      "-a #{accounts}",
       "--db #{db_path} ",
+      inline_accounts(accounts),
       get_block_mine_time(block_mine_time),
       get_output(output)
     ]
+    |> Enum.join(" ")
+  end
+
+  defp generate_accounts(number) do
+    0..number
+    |> Enum.map(fn _ -> Account.new() end)
+  end
+
+  defp inline_accounts(accounts) do
+    accounts
+    |> Enum.map(fn %Account{priv_key: key, balance: balance} ->
+      "--account=\"0x#{key},#{balance}\""
+    end)
     |> Enum.join(" ")
   end
 
