@@ -14,6 +14,7 @@ defmodule Chain.Application do
 
     # List all child processes to be supervised
     children = [
+      Chain.BackendProxyNodeConnector,
       Chain.EVM.Supervisor,
       {Registry, keys: :unique, name: Chain.EVM.Registry},
       Chain.Watcher,
