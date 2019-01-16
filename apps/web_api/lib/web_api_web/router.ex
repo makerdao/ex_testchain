@@ -14,6 +14,7 @@ defmodule WebApiWeb.Router do
     pipe_through :api
     get "/snapshot/:id", ChainController, :download_snapshot
     get "/snapshots/:chain", ChainController, :snapshot_list
-    delete "/chain/:id", ChainController, :remove_chain
+    delete "/:id", ChainController, :remove_chain
+    get "/:id", ChainController, :details
   end
 end

@@ -15,20 +15,24 @@ defmodule Chain.EVM.Implementation.Geth do
   def start(%Config{id: id, db_path: db_path} = config) do
     # We have to create accounts only if we don't have any already
     accounts =
-      case File.ls(db_path) do
-        {:ok, []} ->
+      case Storage.AccountStore.exists?(db_path) do
+        false ->
           Logger.debug("#{id}: Creating accounts")
-          AccountsCreator.create_accounts(Map.get(config, :accounts), db_path)
 
-        _ ->
+          config
+          |> Map.get(:accounts)
+          |> AccountsCreator.create_accounts(db_path)
+          |> store_accounts(db_path)
+
+        true ->
           Logger.info("#{id} Path #{db_path} is not empty. New accounts would not be created.")
-          {:ok, list} = load_existing_accounts(db_path)
+          {:ok, list} = load_accounts(db_path)
           list
       end
 
     Logger.debug("#{id}: Accounts: #{inspect(accounts)}")
 
-    unless File.exists?(db_path <> "/genesis.json") do
+    unless File.exists?(Path.join(db_path, "genesis.json")) do
       :ok = write_genesis(config, accounts)
       Logger.debug("#{id}: genesis.json file created")
     end
@@ -45,7 +49,7 @@ defmodule Chain.EVM.Implementation.Geth do
 
     case start_node(config, accounts) do
       %{err: nil} = port ->
-        {:ok, %{port: port, accounts: accounts, mining: false}}
+        {:ok, %{port: port, mining: false}}
 
       other ->
         {:error, other}
@@ -262,35 +266,5 @@ defmodule Chain.EVM.Implementation.Geth do
   defp send_command(port, command) do
     Porcelain.Process.send_input(port, command <> "\n")
     :ok
-  end
-
-  # load list of existing accounts
-  defp load_existing_accounts(db_path) do
-    case Porcelain.shell("#{executable!()} account list --datadir=#{db_path}") do
-      %{err: nil, out: out, status: 0} ->
-        {:ok, parse_existing_accounts(out)}
-
-      _ ->
-        {:error, "failed to load accounts"}
-    end
-  end
-
-  defp parse_existing_accounts(list) do
-    list
-    |> String.split("\n")
-    |> Enum.map(&parse_existing_account_line/1)
-    |> Enum.reject(&is_nil/1)
-  end
-
-  defp parse_existing_account_line(""), do: nil
-
-  defp parse_existing_account_line(<<"Account", rest::binary>>) do
-    case Regex.named_captures(~r/\{(?<address>.{40})\}/, rest) do
-      %{"address" => address} ->
-        %Account{address: address}
-
-      _ ->
-        nil
-    end
   end
 end

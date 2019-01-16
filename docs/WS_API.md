@@ -177,6 +177,43 @@ api_channel
     .receive('error', console.error)
 ```
 
+Another option for removing chain is HTTP endpoint: 
+`DELETE http://localhost:4000/chain/{chain_id}`
+
+
+### Chain details
+To load chain details you could use GET HTTP endpoint `/chain/chain_id`
+
+Example: 
+`http://localhost:4000/chain/3922963434540054103`
+
+Response:
+```json
+{  
+   "details":{  
+      "accounts":[  
+         {  
+            "address":"0x222aded03619a967a36619360f79c577e3f3c64e",
+            "balance":100000000000000000000,
+            "priv_key":"bfe8f5d1d5af65ab051a0fb7a585514b07fe1e736a7d779741c3ccddf89e4dbb"
+         },
+         {  
+            "address":"0x7a88a88a6ab02bd97c17afccdfd71f73050ef69a",
+            "balance":100000000000000000000,
+            "priv_key":"ff512ca92e7d4afdb8372e77ffb153106c71bd519156437aed845e09c039c894"
+         }
+      ],
+      "coinbase":"0x222aded03619a967a36619360f79c577e3f3c64e",
+      "id":"3922963434540054103",
+      "rpc_url":"http://localhost:8597",
+      "ws_url":"ws://localhost:8560"
+   },
+   "status":0
+}
+```
+
+**Note**: balance is not actual balance. It's initial balance for account.
+
 ## Events
 Because some operations might take some time or for example errors might appear randomly
 ex_testchain provides you with set of events for handling such situations.
@@ -276,3 +313,4 @@ Payload example:
 Event `stopped`
 Event will be fired to `chain:${id}` channel
 Payload will be empty
+

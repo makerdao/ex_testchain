@@ -8,9 +8,21 @@ defmodule Chain.EVM.Implementation.Ganache do
   alias Chain.EVM.Config
 
   @impl Chain.EVM
-  def start(%Config{id: id, accounts: amount} = config) do
+  def start(%Config{id: id, accounts: amount, db_path: db_path} = config) do
     Logger.debug("#{id}: Starting ganache-cli")
-    accounts = generate_accounts(amount)
+
+    accounts =
+      case Storage.AccountStore.exists?(db_path) do
+        false ->
+          amount
+          |> generate_accounts()
+          |> store_accounts(db_path)
+
+        true ->
+          {:ok, list} = load_accounts(db_path)
+          list
+      end
+
     %{err: nil} = port = start_node(config, accounts)
 
     file = open_log_file(config)

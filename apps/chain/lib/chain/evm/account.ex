@@ -38,3 +38,11 @@ defmodule Chain.EVM.Account do
   # all ethereum addresses are based on valid ECDH secp256k1 keys
   defp generate_pair(), do: :crypto.generate_key(:ecdh, :secp256k1)
 end
+
+defimpl Jason.Encoder, for: Chain.EVM.Account do
+  def encode(value, opts) do
+    value
+    |> Map.from_struct()
+    |> Jason.Encode.map(opts)
+  end
+end

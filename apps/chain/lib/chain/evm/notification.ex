@@ -34,3 +34,11 @@ defmodule Chain.EVM.Notification do
   @enforce_keys [:id, :event]
   defstruct id: nil, event: nil, data: %{}
 end
+
+defimpl Jason.Encoder, for: Chain.EVM.Notification do
+  def encode(value, opts) do
+    value
+    |> Map.from_struct()
+    |> Jason.Encode.map(opts)
+  end
+end
