@@ -136,6 +136,16 @@ defmodule Chain.Test.EVMTestCase do
 
         refute File.exists?(path)
       end
+
+      test "#{@chain} should load details with accounts", %{id: id} do
+        assert Chain.alive?(id)
+
+        {:ok, %Chain.EVM.Process{id: ^id, accounts: accounts} = info} = Chain.details(id)
+        assert is_list(accounts)
+        [%Chain.EVM.Account{} | _] = accounts
+        assert Map.get(info, :rpc_url)
+        assert Map.get(info, :ws_url)
+      end
     end
   end
 end

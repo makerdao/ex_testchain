@@ -12,7 +12,8 @@ defmodule Chain.MixProject do
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      included_applications: [:ksha3]
     ]
   end
 
@@ -34,6 +35,9 @@ defmodule Chain.MixProject do
     [
       {:poison, "~> 3.1"},
       {:porcelain, "~> 2.0"},
+      {:poolboy, "~> 1.5.1"},
+      {:ksha3, "~> 1.0.0", git: "https://github.com/onyxrev/ksha3.git", branch: "master"},
+      {:ethereum_wallet, github: "onyxrev/ethereum_wallet_elixir"},
       {:json_rpc, in_umbrella: true},
       {:storage, in_umbrella: true},
       {:faker, "~> 0.11", only: :test}

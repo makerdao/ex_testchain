@@ -56,4 +56,12 @@ defmodule WebApiWeb.ChainController do
         |> render("500.json", message: "Something wrong on removing chain")
     end
   end
+
+  # Load chain details for running chain
+  def details(conn, %{"id" => id}) do
+    with {:ok, info} <- Chain.details(id) do
+      conn
+      |> json(%{status: 0, details: info})
+    end
+  end
 end

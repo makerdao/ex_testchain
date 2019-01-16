@@ -5,7 +5,9 @@ defmodule Chain.EVM.Implementation.Geth do
   use Chain.EVM
 
   alias Chain.EVM.Config
+  alias Chain.EVM.Account
   alias Chain.EVM.Implementation.Geth.Genesis
+  alias Chain.EVM.Implementation.Geth.AccountsCreator
 
   require Logger
 
@@ -13,20 +15,24 @@ defmodule Chain.EVM.Implementation.Geth do
   def start(%Config{id: id, db_path: db_path} = config) do
     # We have to create accounts only if we don't have any already
     accounts =
-      case File.ls(db_path) do
-        {:ok, []} ->
+      case Storage.AccountStore.exists?(db_path) do
+        false ->
           Logger.debug("#{id}: Creating accounts")
-          create_accounts(Map.get(config, :accounts), db_path)
 
-        _ ->
+          config
+          |> Map.get(:accounts)
+          |> AccountsCreator.create_accounts(db_path)
+          |> store_accounts(db_path)
+
+        true ->
           Logger.info("#{id} Path #{db_path} is not empty. New accounts would not be created.")
-          {:ok, list} = load_existing_accounts(db_path)
+          {:ok, list} = load_accounts(db_path)
           list
       end
 
     Logger.debug("#{id}: Accounts: #{inspect(accounts)}")
 
-    unless File.exists?(db_path <> "/genesis.json") do
+    unless File.exists?(Path.join(db_path, "genesis.json")) do
       :ok = write_genesis(config, accounts)
       Logger.debug("#{id}: genesis.json file created")
     end
@@ -43,7 +49,7 @@ defmodule Chain.EVM.Implementation.Geth do
 
     case start_node(config, accounts) do
       %{err: nil} = port ->
-        {:ok, %{port: port, accounts: accounts, mining: false}}
+        {:ok, %{port: port, mining: false}}
 
       other ->
         {:error, other}
@@ -88,48 +94,6 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @doc """
-  Create new account for geth
-
-  Will create new account with password from file `Path.absname("../../priv/presets/geth/account_password")`
-  using `geth account new` command.
-
-  Example: 
-  ```elixir
-  iex(1)> Chain.EVM.Geth.create_account("/path/to/chain/data/dir")
-  "172536bfde649d20eaf4ac7a3eab742b9a6cc373"
-  ```
-  """
-  @spec create_account(binary) :: binary
-  def create_account(db_path) do
-    %{status: 0, err: nil, out: <<"Address: {", address::binary-size(40), _::binary>>} =
-      "#{executable!()} account new --datadir #{db_path} --password #{password_file()} 2>/dev/null"
-      |> Porcelain.shell()
-
-    address
-  end
-
-  @doc """
-  Create `amount` of new accounts.
-
-  Example:
-  ```elixir
-  iex> Chain.EVM.Geth.create_accounts(3, System.user_home!())
-  ["21371d54056b10fab95e1babdc61a3ebc584dce9",
-  "608c6e2cd12a1f59180083283e6c3600526b3485",
-  "c3e1a2ed30439792ce5d63b13342a22931220f41"]
-  ```
-  """
-  @spec create_accounts(non_neg_integer(), binary) :: [binary]
-  def create_accounts(amount, db_path) when amount >= 1 do
-    # TODO: need to use poolboy to create accounts in async worker pools
-    # Task.async/await might crash system because of to many `geth` processes at once
-    1..amount
-    |> Enum.map(fn _ -> create_account(db_path) end)
-  end
-
-  def create_accounts(_, _), do: []
-
-  @doc """
   Bootstrap and initialize a new genesis block.
 
   It will run `geth init` command using `--datadir db_path`
@@ -154,7 +118,7 @@ defmodule Chain.EVM.Implementation.Geth do
   @doc """
   Start geth node based on given parameters
   """
-  @spec start_node(Chain.EVM.Config.t(), [Chain.account()]) :: Porcelain.Process.t()
+  @spec start_node(Chain.EVM.Config.t(), [Chain.EVM.Account.t()]) :: Porcelain.Process.t()
   def start_node(config, accounts) do
     Porcelain.spawn_shell(build_command(config, accounts), out: {:send, self()})
   end
@@ -180,12 +144,11 @@ defmodule Chain.EVM.Implementation.Geth do
     |> JsonRpc.call(command, params)
   end
 
-  #
-  # Private functions
-  #
-
-  # Get executable path
-  defp executable!() do
+  @doc """
+  Get path to `geth` executable in system
+  """
+  @spec executable!() :: binary
+  def executable!() do
     case System.find_executable("geth") do
       nil ->
         throw("No executable 'geth' found in system...")
@@ -194,6 +157,10 @@ defmodule Chain.EVM.Implementation.Geth do
         path
     end
   end
+
+  #
+  # Private functions
+  #
 
   # Writing `genesis.json` file into defined `db_path`
   defp write_genesis(%Config{db_path: db_path, network_id: chain_id, id: id}, accounts) do
@@ -240,7 +207,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--targetgaslimit=\"9000000000000\"",
       # "--mine",
       # "--minerthreads=1",
-      "--password=#{password_file()}",
+      "--password=#{AccountsCreator.password_file()}",
       get_etherbase(accounts),
       get_unlock(accounts),
       "console",
@@ -263,14 +230,22 @@ defmodule Chain.EVM.Implementation.Geth do
 
   # get first created account. it will be coinbase
   defp get_etherbase([]), do: ""
-  defp get_etherbase([{account, _} | _]), do: "--etherbase=\"0x#{account}\""
-  defp get_etherbase([account | _]) when is_binary(account), do: "--etherbase=\"0x#{account}\""
+
+  defp get_etherbase([%Account{address: <<"0x", address::binary>>} | _]),
+    do: "--etherbase=\"#{address}\""
+
+  defp get_etherbase([%Account{address: address} | _]), do: "--etherbase=\"#{address}\""
 
   # combine list of accounts to unlock `--unlock 0x....,0x.....`
   defp get_unlock([]), do: ""
 
   defp get_unlock(list) do
-    "--unlock=\"" <> Enum.join(list, "\",\"") <> "\""
+    res =
+      list
+      |> Enum.map(fn %Account{address: address} -> address end)
+      |> Enum.join("\",\"")
+
+    "--unlock=\"#{res}\""
   end
 
   # Get path for logging
@@ -283,9 +258,6 @@ defmodule Chain.EVM.Implementation.Geth do
   # End of list 
   #####
 
-  # Have to return pasword file for accounts
-  defp password_file(), do: Application.get_env(:chain, :geth_password_file)
-
   # Send command to port
   # This action will send command directly to started node console.
   # Without attaching. 
@@ -294,35 +266,5 @@ defmodule Chain.EVM.Implementation.Geth do
   defp send_command(port, command) do
     Porcelain.Process.send_input(port, command <> "\n")
     :ok
-  end
-
-  # load list of existing accounts
-  defp load_existing_accounts(db_path) do
-    case Porcelain.shell("#{executable!()} account list --datadir=#{db_path}") do
-      %{err: nil, out: out, status: 0} ->
-        {:ok, parse_existing_accounts(out)}
-
-      _ ->
-        {:error, "failed to load accounts"}
-    end
-  end
-
-  defp parse_existing_accounts(list) do
-    list
-    |> String.split("\n")
-    |> Enum.map(&parse_existing_account_line/1)
-    |> Enum.reject(&("" == &1))
-  end
-
-  defp parse_existing_account_line(""), do: ""
-
-  defp parse_existing_account_line(<<"Account", rest::binary>>) do
-    case Regex.named_captures(~r/\{(?<address>.{40})\}/, rest) do
-      %{"address" => address} ->
-        address
-
-      _ ->
-        ""
-    end
   end
 end

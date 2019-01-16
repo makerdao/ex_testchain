@@ -5,11 +5,19 @@ defmodule Chain.EVM.Process do
   @type t :: %__MODULE__{
           id: Chain.evm_id(),
           coinbase: binary,
-          accounts: [binary | {binary, non_neg_integer()}],
+          accounts: [Chain.EVM.Account.t()],
           rpc_url: binary,
           ws_url: binary
         }
 
   @enforce_keys [:id]
   defstruct id: nil, coinbase: "", accounts: [], rpc_url: "", ws_url: ""
+end
+
+defimpl Jason.Encoder, for: Chain.EVM.Process do
+  def encode(value, opts) do
+    value
+    |> Map.from_struct()
+    |> Jason.Encode.map(opts)
+  end
 end

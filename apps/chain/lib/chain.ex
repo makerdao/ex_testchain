@@ -27,15 +27,6 @@ defmodule Chain do
   """
   @type evm_id :: binary()
 
-  @typedoc """
-  Default account definition for chain
-  Might be in 2 different variants: 
-   - `binary` - Just account address
-   - `{binary, non_neg_integer()} - Address, balance.
-  ```
-  """
-  @type account :: binary | {binary, non_neg_integer()}
-
   @doc """
   Start a new EVM using given configuration
   It will generate unique ID for new evm process
@@ -128,7 +119,7 @@ defmodule Chain do
   Load details for running chain.
   """
   @spec details(Chain.evm_id()) :: {:ok, Chain.EVM.Process.t()} | {:error, term()}
-  def details(_id), do: {:error, "not implemented yet"}
+  def details(id), do: GenServer.call(get_pid(id), :details)
 
   @doc """
   Clean everything related to this chain.
@@ -200,6 +191,12 @@ defmodule Chain do
   @spec revert_internal_snapshot(Chain.evm_id(), binary | number) :: :ok | {:error, term()}
   def revert_internal_snapshot(id, snapshot_id),
     do: GenServer.call(get_pid!(id), {:revert_internal_snapshot, snapshot_id})
+
+  @doc """
+  Load list of initial accounts for chain
+  """
+  @spec initial_accounts(Chain.evm_id()) :: {:ok, [Chain.EVM.Account.t()]} | {:error, term()}
+  def initial_accounts(id), do: GenServer.call(get_pid!(id), :initial_accounts)
 
   @doc """
   Load list of evms version used in app

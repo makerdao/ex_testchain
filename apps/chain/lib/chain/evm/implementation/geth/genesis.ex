@@ -1,4 +1,6 @@
 defmodule Chain.EVM.Implementation.Geth.Genesis do
+  alias Chain.EVM.Account
+
   @moduledoc """
   Genesis generator for `geth` chain.
 
@@ -25,14 +27,11 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   Of course you could combine definitions.
   """
 
-  # Default balance for account
-  @balance "100000000000000000000"
-
   @type t :: %__MODULE__{
           chain_id: non_neg_integer(),
           difficulty: non_neg_integer(),
           gas_limit: non_neg_integer(),
-          accounts: [binary | {binary, non_neg_integer()}]
+          accounts: [Chain.EVM.Account.t()]
         }
 
   defstruct chain_id: 999, difficulty: 1, gas_limit: 6_000_000, accounts: []
@@ -47,7 +46,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   ```elixir
   iex> alias Chain.EVM.Implementation.Geth.Genesis
   Chain.EVM.Implementation.Geth.Genesis
-  iex> Genesis.write(%Genesis{accounts: [{"172536bfde649d20eaf4ac7a3eab742b9a6cc373", 100000}]}, "/home/user/geth_data")
+  iex> Genesis.write(%Genesis{accounts: []}, "/home/user/geth_data")
   :ok
   ```
   """
@@ -91,10 +90,9 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
     |> Enum.into(%{}, &build_account/1)
   end
 
-  defp build_account({<<"0x", address::binary>>, balance}),
+  defp build_account(%Account{address: <<"0x", address::binary>>, balance: balance}),
     do: {address, %{balance: to_string(balance)}}
 
-  defp build_account({address, balance}), do: {address, %{balance: to_string(balance)}}
-  defp build_account(<<"0x", address::binary>>), do: {address, %{balance: @balance}}
-  defp build_account(address) when is_binary(address), do: {address, %{balance: @balance}}
+  defp build_account(%Account{address: address, balance: balance}),
+    do: {address, %{balance: to_string(balance)}}
 end

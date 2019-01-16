@@ -7,6 +7,7 @@ defmodule Chain.EVM do
 
   alias Chain.EVM.Config
   alias Chain.EVM.Notification
+  alias Storage.AccountStore
 
   # Amount of ms the server is allowed to spend initializing or it will be terminated
   @timeout Application.get_env(:chain, :kill_timeout, 60_000)
@@ -125,8 +126,18 @@ defmodule Chain.EVM do
   @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
   """
-  @callback terminate(id :: Chain.evm_id(), config :: Chain.EVM.Config.t(), state :: term()) ::
+  @callback terminate(id :: Chain.evm_id(), config :: Chain.EVM.Config.t(), state :: any()) ::
               term()
+
+  @doc """
+  Load list of initial accounts
+  Should return list of initial accounts for chain.
+  By default they will be stored into `{db_path}/addresses.json` file in JSON format
+
+  Reply should be in format 
+  `{:ok, [Chain.EVM.Account.t()]} | {:error, term()}`
+  """
+  @callback initial_accounts(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
   Callback will be called to get exact EVM version
@@ -414,6 +425,7 @@ defmodule Chain.EVM do
         end
       end
 
+      @doc false
       def handle_info(msg, state) do
         Logger.debug("#{state.config.id}: Got msg #{inspect(msg)}")
         {:noreply, state}
@@ -441,6 +453,29 @@ defmodule Chain.EVM do
         |> handle_action(state)
       end
 
+      @doc false
+      def handle_call(
+            :initial_accounts,
+            _from,
+            %State{config: config, internal_state: internal_state} = state
+          ) do
+        config
+        |> initial_accounts(internal_state)
+        |> handle_action(state)
+      end
+
+      @doc false
+      def handle_call(:details, _from, %State{config: config} = state) do
+        case details(config) do
+          %Chain.EVM.Process{} = info ->
+            {:reply, {:ok, info}, state}
+
+          _ ->
+            {:reply, {:error, "could not load details"}, state}
+        end
+      end
+
+      @doc false
       def handle_cast(
             {:take_snapshot, description},
             %State{status: :active, config: config, internal_state: internal_state} = state
@@ -604,29 +639,15 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def handle_started(%{notify_pid: nil}, _internal_state), do: :ok
 
-      def handle_started(
-            %{id: id, notify_pid: pid, http_port: http_port, ws_port: ws_port},
-            _internal_state
-          ) do
-        # Making request using async to not block scheduler
-        [{:ok, coinbase}, {:ok, accounts}] =
-          [
-            # NOTE: here we will use localhost to avoid calling to chain from outside
-            Task.async(fn -> JsonRpc.eth_coinbase("http://localhost:#{http_port}") end),
-            Task.async(fn -> JsonRpc.eth_accounts("http://localhost:#{http_port}") end)
-          ]
-          |> Enum.map(&Task.await/1)
-
-        details = %{
-          coinbase: coinbase,
-          accounts: accounts,
-          rpc_url: "http://#{@front_url}:#{http_port}",
-          ws_url: "ws://#{@front_url}:#{ws_port}"
-        }
-
+      def handle_started(%Config{notify_pid: pid, id: id} = config, _internal_state) do
+        details = details(config)
         send(pid, %Notification{id: id, event: :started, data: details})
-        :ok
+        :ignore
       end
+
+      @impl Chain.EVM
+      def initial_accounts(%Config{db_path: db_path}, state),
+        do: {:reply, load_accounts(db_path), state}
 
       @impl Chain.EVM
       def version(), do: "x.x.x"
@@ -649,6 +670,32 @@ defmodule Chain.EVM do
       #
       ########
 
+      # Get chain details by config
+      defp details(%Config{
+             id: id,
+             db_path: db_path,
+             notify_pid: pid,
+             http_port: http_port,
+             ws_port: ws_port
+           }) do
+        # Making request using async to not block scheduler
+        [{:ok, coinbase}, {:ok, accounts}] =
+          [
+            # NOTE: here we will use localhost to avoid calling to chain from outside
+            Task.async(fn -> JsonRpc.eth_coinbase("http://localhost:#{http_port}") end),
+            Task.async(fn -> load_accounts(db_path) end)
+          ]
+          |> Enum.map(&Task.await/1)
+
+        %Chain.EVM.Process{
+          id: id,
+          coinbase: coinbase,
+          accounts: accounts,
+          rpc_url: "http://#{@front_url}:#{http_port}",
+          ws_url: "ws://#{@front_url}:#{ws_port}"
+        }
+      end
+
       # notify listener about evm status change
       defp notify_status(%Config{id: id, notify_pid: pid, clean_on_stop: clean} = config, status) do
         if pid do
@@ -662,10 +709,6 @@ defmodule Chain.EVM do
         unless clean do
           Storage.store(config, status)
         end
-      end
-
-      defp save_chain_status(config, status) do
-        Storage.store(config, status)
       end
 
       # Internal handler for evm actions
@@ -688,11 +731,24 @@ defmodule Chain.EVM do
         end
       end
 
+      # Store current chain in storage
+      defp save_chain_status(config, status), do: Storage.store(config, status)
+
       # Send msg to check if evm started
       # Checks when EVM is started in async mode.
       defp check_started(pid, retries \\ 0) do
         Process.send_after(pid, {:check_started, retries}, 200)
       end
+
+      # Store initial accounts
+      # will return given accoutns
+      defp store_accounts(accounts, db_path) do
+        AccountStore.store(db_path, accounts)
+        accounts
+      end
+
+      # Load list of initial accoutns from storage
+      defp load_accounts(db_path), do: AccountStore.load(db_path)
 
       # Allow to override functions
       defoverridable handle_started: 2,
