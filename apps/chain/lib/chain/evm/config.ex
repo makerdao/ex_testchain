@@ -16,6 +16,7 @@ defmodule Chain.EVM.Config do
   - `output` - Path to logs file. If empty string passing logs will be stored into `db_path <> /out.log`. To disable logging pass `nil`
   - `clean_on_stop` - Clean up `db_path` after chain is stopped. (Default: `false`)
   - `description` - Chain description for storage
+  - `snapshot_id` - Snapshot ID that should be loaded on chain start
 
   """
   @type t :: %__MODULE__{
@@ -30,7 +31,8 @@ defmodule Chain.EVM.Config do
           output: binary,
           notify_pid: nil | pid(),
           clean_on_stop: boolean(),
-          description: binary
+          description: binary,
+          snapshot_id: nil | binary
         }
 
   defstruct type: :ganache,
@@ -44,5 +46,6 @@ defmodule Chain.EVM.Config do
             output: "",
             notify_pid: nil,
             clean_on_stop: false,
-            description: ""
+            description: "",
+            snapshot_id: nil
 end

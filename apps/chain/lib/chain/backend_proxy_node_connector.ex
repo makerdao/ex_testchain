@@ -63,7 +63,7 @@ defmodule Chain.BackendProxyNodeConnector do
         true
 
       _ ->
-        Logger.debug("#{__MODULE__}: Failed to connect to #{backend_node()}")
+        # Logger.debug("#{__MODULE__}: Failed to connect to #{backend_node()}")
         false
     end
   end

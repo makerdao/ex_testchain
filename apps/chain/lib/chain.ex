@@ -301,6 +301,11 @@ defmodule Chain do
       :ok = File.mkdir_p!(db_path)
     end
 
+    if snapshot_id = Map.get(config, :snapshot_id) do
+      Logger.debug("#{id}: snapshot #{snapshot_id} should be loaded before chain start")
+      load_restore_snapshot(snapshot_id, db_path)
+    end
+
     with false <- Watcher.port_in_use?(http_port),
          false <- Watcher.port_in_use?(ws_port),
          false <- Watcher.path_in_use?(db_path),
@@ -312,6 +317,22 @@ defmodule Chain do
 
       _ ->
         {:error, "Something went wrong on starting chain"}
+    end
+  end
+
+  # Load and restore snapshot to given path
+  defp load_restore_snapshot(snapshot_id, db_path) do
+    case Chain.SnapshotManager.by_id(snapshot_id) do
+      nil ->
+        :ok
+
+      %Chain.Snapshot.Details{} = snapshot ->
+        try do
+          Chain.SnapshotManager.restore_snapshot!(snapshot, db_path)
+        rescue
+          _ ->
+            {:error, "failed to restore snapshot #{snapshot_id}"}
+        end
     end
   end
 

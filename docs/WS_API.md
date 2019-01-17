@@ -63,6 +63,7 @@ api_channel
         accounts: 2, // Number of account to be created on chain start (optional, default is 1)
         block_mine_time: 0, // how often new block should be mined (0 - instamine)
         clean_on_stop: true, // Will delete chain db folder after chain stop
+        snapshot_id: "some_snapshot_id", // Will start chain based on snapshot_id (No new accounts will be created)
     }
 }
 ```

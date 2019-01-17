@@ -11,12 +11,13 @@
                 .receive('ok', (data) => console.log('Connected to API channel', data))
                 .receive('error', console.error)
 
-            function start(chain) {
+            function start(chain, snapshot = null) {
                 const options = {
                     type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
                     accounts: 2, // Number of account to be created on chain start
                     block_mine_time: 0, // how often new block should be mined (0 - instamine)
                     clean_on_stop: true, // Will delete chain db folder after chain stop
+                    snapshot_id: snapshot,
                 }
 
                 api.push('start', options)
@@ -114,12 +115,13 @@
                 .receive('ok', (data) => console.log('Connected to API channel', data))
                 .receive('error', console.error)
 
-            function start(chain) {
+            function start(chain, snapshot = null) {
                 const options = {
                     type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
                     accounts: 2, // Number of account to be created on chain start
                     block_mine_time: 0, // how often new block should be mined (0 - instamine)
                     clean_on_stop: true, // Will delete chain db folder after chain stop
+                    snapshot_id: snapshot,
                 }
 
                 api.push('start', options)

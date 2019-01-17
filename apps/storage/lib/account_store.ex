@@ -1,4 +1,9 @@
 defmodule Storage.AccountStore do
+  @moduledoc """
+  Account storage modules.
+  It will store list of account for chain with their private keys
+  """
+
   # file where list of initial accounts will be stored
   @file_name "initial_addresses"
 

@@ -1,4 +1,8 @@
 defmodule Storage.Provider do
+  @moduledoc """
+  Basic chain storage provider behaviour.
+  """
+
   @doc """
   Store given chain details in DB.
   Idea is very simple you have to pass chain config as 1st arg, status as 2nd and any other required info
