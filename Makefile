@@ -66,3 +66,7 @@ run: ## Run the app in Docker
 		--expose 9100-9105 -p 9100-9105:9100-9105 \
 		--rm -it $(APP_NAME):latest
 .PHONY: run
+
+dev: ## Run local node with correct values
+	@iex --name chain@127.0.0.1 -S mix
+.PHONY: dev
