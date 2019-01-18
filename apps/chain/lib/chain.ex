@@ -38,6 +38,13 @@ defmodule Chain do
 
   def start(%Config{type: _}), do: {:error, :unsuported_evm_type}
 
+  # Ability to start chain using map
+  def start(config) when is_map(config) do
+    Config
+    |> struct(config)
+    |> start()
+  end
+
   @doc """
   Try starting existing stored chain.
 
