@@ -9,9 +9,7 @@ defmodule Chain.SnapshotManager do
 
   alias Chain.Snapshot.Details, as: SnapshotDetails
   alias Porcelain.Result
-
-  # DETS table name
-  @table :snapshots
+  alias Storage.SnapshotStore
 
   @doc false
   def start_link(_) do
@@ -27,19 +25,11 @@ defmodule Chain.SnapshotManager do
       :ok = File.mkdir_p!(path)
     end
 
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   @doc false
-  def init(:ok) do
-    :dets.open_file(@table, type: :set)
-  end
-
-  @doc false
-  def terminate(_, _) do
-    Logger.debug("#{__MODULE__} terminating... Closing DETS...")
-    :dets.close(@table)
-  end
+  def init(_), do: {:ok, nil}
 
   @doc """
   Create a snapshot and store it into local DB (DETS for now)
@@ -55,7 +45,8 @@ defmodule Chain.SnapshotManager do
     id = generate_snapshot_id()
 
     to =
-      Application.get_env(:chain, :snapshot_base_path)
+      :chain
+      |> Application.get_env(:snapshot_base_path)
       |> Path.expand()
       |> Path.join("#{id}.tgz")
 
@@ -111,59 +102,6 @@ defmodule Chain.SnapshotManager do
 
       {:error, msg} ->
         raise msg
-    end
-  end
-
-  @doc """
-  Store new snapshot into local DB
-  """
-  @spec store(Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
-  def store(%SnapshotDetails{id: id, chain: chain} = snapshot),
-    do: :dets.insert(@table, {id, chain, snapshot})
-
-  @doc """
-  Load snapshot details by id
-  In case of error it might raise an exception
-  """
-  @spec by_id(binary) :: Chain.Snapshot.Details.t() | nil
-  def by_id(id) do
-    case :dets.lookup(@table, id) do
-      [] ->
-        nil
-
-      [{^id, _, snapshot}] ->
-        snapshot
-    end
-  end
-
-  @doc """
-  Load list of existing snapshots by chain type
-  """
-  @spec by_chain(Chain.evm_type()) :: [Chain.Snapshot.Details.t()]
-  def by_chain(chain) do
-    @table
-    |> :dets.match({:_, chain, :"$1"})
-    |> Enum.map(fn [snap] -> snap end)
-  end
-
-  @doc """
-  Remove snapshot details from local DB
-  """
-  @spec remove(binary) :: :ok
-  def remove(id) do
-    case by_id(id) do
-      nil ->
-        :ok
-
-      %SnapshotDetails{path: path} ->
-        if File.exists?(path) do
-          File.rm(path)
-        end
-
-        # Remove from db
-        :dets.delete(@table, id)
-
-        :ok
     end
   end
 
@@ -225,14 +163,54 @@ defmodule Chain.SnapshotManager do
     end
   end
 
+  @doc """
+  Store new snapshot into local DB
+  """
+  @spec store(Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
+  def store(%SnapshotDetails{} = snapshot),
+    do: SnapshotStore.store(snapshot)
+
+  @doc """
+  Load snapshot details by id
+  In case of error it might raise an exception
+  """
+  @spec by_id(binary) :: Chain.Snapshot.Details.t() | nil
+  def by_id(id), do: SnapshotStore.by_id(id)
+
+  @doc """
+  Load list of existing snapshots by chain type
+  """
+  @spec by_chain(Chain.evm_type()) :: [Chain.Snapshot.Details.t()]
+  def by_chain(chain), do: SnapshotStore.by_chain(chain)
+
+  @doc """
+  Remove snapshot details from local DB
+  """
+  @spec remove(binary) :: :ok
+  def remove(id) do
+    case by_id(id) do
+      nil ->
+        :ok
+
+      %SnapshotDetails{path: path} ->
+        if File.exists?(path) do
+          File.rm(path)
+        end
+
+        # Remove from db
+        SnapshotStore.remove(id)
+
+        :ok
+    end
+  end
+
   # Try to lookup for a key till new wouldn't be generated
   defp generate_snapshot_id() do
     id = Chain.unique_id()
 
-    case :dets.lookup(@table, id) do
-      [] ->
-        id
-
+    with nil <- SnapshotStore.by_id(id) do
+      id
+    else
       _ ->
         generate_snapshot_id()
     end

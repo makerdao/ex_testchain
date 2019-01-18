@@ -10,7 +10,8 @@ defmodule Storage.Application do
     children = [
       # Starts a worker by calling: Storage.Worker.start_link(arg)
       # {Storage.Worker, arg},
-      provider()
+      provider(),
+      Storage.SnapshotStore
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

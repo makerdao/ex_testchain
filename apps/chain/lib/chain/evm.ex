@@ -476,6 +476,10 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_cast({:new_notify_pid, pid}, %State{config: config} = state),
+        do: {:noreply, %State{state | config: Map.put(config, :notify_pid, pid)}}
+
+      @doc false
       def handle_cast(
             {:take_snapshot, description},
             %State{status: :active, config: config, internal_state: internal_state} = state

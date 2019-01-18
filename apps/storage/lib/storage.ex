@@ -20,6 +20,7 @@ defmodule Storage do
       other
       |> Map.merge(config)
       |> Map.merge(%{status: status})
+      |> Map.drop([:notify_pid])
 
     apply(module(), :store, [record])
   end

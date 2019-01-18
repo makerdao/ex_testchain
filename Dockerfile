@@ -55,7 +55,7 @@ FROM ${EVM_IMAGE}
 
 # The name of your application/release (required)
 ARG APP_NAME=${APP_NAME}
-ARG PORT=4000
+ARG PORT=4001
 
 EXPOSE ${PORT}
 EXPOSE 8500-8600

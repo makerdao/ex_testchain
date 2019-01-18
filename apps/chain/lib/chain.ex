@@ -38,6 +38,13 @@ defmodule Chain do
 
   def start(%Config{type: _}), do: {:error, :unsuported_evm_type}
 
+  # Ability to start chain using map
+  def start(config) when is_map(config) do
+    Config
+    |> struct(config)
+    |> start()
+  end
+
   @doc """
   Try starting existing stored chain.
 
@@ -95,31 +102,16 @@ defmodule Chain do
   def alive?(id), do: nil != get_pid(id)
 
   @doc """
-  Generate uniq ID
-
-  It also checks if such ID exist in runing processes list
-  and checks if chain db exist for this `id`
-  """
-  @spec unique_id() :: Chain.evm_id()
-  def unique_id() do
-    <<new_unique_id::big-integer-size(8)-unit(8)>> = :crypto.strong_rand_bytes(8)
-    new_unique_id = to_string(new_unique_id)
-
-    with nil <- get_pid(new_unique_id),
-         nil <- Storage.get(new_unique_id),
-         false <- File.exists?(evm_db_path(new_unique_id)) do
-      new_unique_id
-    else
-      _ ->
-        unique_id()
-    end
-  end
-
-  @doc """
   Load details for running chain.
   """
   @spec details(Chain.evm_id()) :: {:ok, Chain.EVM.Process.t()} | {:error, term()}
   def details(id), do: GenServer.call(get_pid(id), :details)
+
+  @doc """
+  Set new `notify_pid` for exising chain
+  """
+  @spec new_notify_pid(Chain.evm_id(), pid()) :: :ok
+  def new_notify_pid(id, pid), do: GenServer.cast(get_pid(id), {:new_notify_pid, pid})
 
   @doc """
   Clean everything related to this chain.
@@ -197,6 +189,27 @@ defmodule Chain do
   """
   @spec initial_accounts(Chain.evm_id()) :: {:ok, [Chain.EVM.Account.t()]} | {:error, term()}
   def initial_accounts(id), do: GenServer.call(get_pid!(id), :initial_accounts)
+
+  @doc """
+  Generate uniq ID
+
+  It also checks if such ID exist in runing processes list
+  and checks if chain db exist for this `id`
+  """
+  @spec unique_id() :: Chain.evm_id()
+  def unique_id() do
+    <<new_unique_id::big-integer-size(8)-unit(8)>> = :crypto.strong_rand_bytes(8)
+    new_unique_id = to_string(new_unique_id)
+
+    with nil <- get_pid(new_unique_id),
+         nil <- Storage.get(new_unique_id),
+         false <- File.exists?(evm_db_path(new_unique_id)) do
+      new_unique_id
+    else
+      _ ->
+        unique_id()
+    end
+  end
 
   @doc """
   Load list of evms version used in app
