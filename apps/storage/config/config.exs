@@ -23,6 +23,8 @@ use Mix.Config
 
 config :storage, provider: Storage.Provider.Dets
 
+config :storage, dets_db_path: "/tmp/chains"
+
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
 # by uncommenting the line below and defining dev.exs, test.exs and such.

@@ -31,6 +31,9 @@ config :chain, base_path: "/tmp/chains"
 # chain id will be added as a target folder under this path
 config :chain, snapshot_base_path: "/tmp/snapshots"
 
+# Path whre snapshots DB will be stored
+config :chain, snapshot_db_path: :"/tmp/db/snapshots"
+
 # List of ports available for evm allocation
 config :chain, evm_port_range: 8500..8600
 
