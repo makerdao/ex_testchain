@@ -31,10 +31,14 @@ $ nix-env -iA nixos.erlangR21
 
 Installing project dependencies is easy:
 ```bash
-$ make deps
+$ make do deps.get, deps.compile
 ```
 
 Will install, compile all elixir dependencies and node.js for ganache
+
+## Running ex_testchain
+
+For your local instance you could use `make dev` command
 
 ## Docker support
 For people who don't want to install everything on local machine there is Docker image provided. 
@@ -86,7 +90,7 @@ To run it locally:
 $ iex -S mix phx.server
 ```
 
-This command will start project locally and spawn a HTTP/WS server on port `4000`
+This command will start project locally and spawn a HTTP/WS server on port `4001`
 
 And it will become accesible from anywhere you need.
 ## Logging

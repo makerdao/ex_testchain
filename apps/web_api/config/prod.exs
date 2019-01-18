@@ -10,7 +10,7 @@ use Mix.Config
 # which you should run after static files are built and
 # before starting your production server.
 config :web_api, WebApiWeb.Endpoint,
-  http: [:inet6, port: System.get_env("PORT") || 4000],
+  http: [:inet6, port: System.get_env("PORT") || 4001],
   url: [host: "localhost", port: {:system, "PORT"}],
   server: true,
   root: ".",
