@@ -191,6 +191,28 @@ defmodule Chain do
   def initial_accounts(id), do: GenServer.call(get_pid!(id), :initial_accounts)
 
   @doc """
+  Load list of all active (running) chains from system
+  """
+  @spec active_list() :: [map()]
+  def active_list() do
+    Chain.EVM.Supervisor
+    |> DynamicSupervisor.which_children()
+    |> Enum.map(fn {_, pid, _, _} -> pid end)
+    |> Enum.map(&Registry.keys(Chain.EVM.Registry, &1))
+    |> List.flatten()
+    |> Enum.map(fn id ->
+      case details(id) do
+        {:ok, details} ->
+          details
+
+        _ ->
+          nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  @doc """
   Generate uniq ID
 
   It also checks if such ID exist in runing processes list
