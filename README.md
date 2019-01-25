@@ -90,7 +90,7 @@ To run it locally:
 $ iex -S mix phx.server
 ```
 
-This command will start project locally and spawn a HTTP/WS server on port `4001`
+This command will start project locally and spawn a HTTP/WS server on port `4000`
 
 And it will become accesible from anywhere you need.
 ## Logging

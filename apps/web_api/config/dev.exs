@@ -7,7 +7,7 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :web_api, WebApiWeb.Endpoint,
-  http: [port: 4001],
+  http: [port: 4000],
   debug_errors: false,
   code_reloader: true,
   check_origin: false,
@@ -27,7 +27,7 @@ config :web_api, WebApiWeb.Endpoint,
 # The `http:` config above can be replaced with:
 #
 #     https: [
-#       port: 4001,
+#       port: 4000,
 #       cipher_suite: :strong,
 #       keyfile: "priv/cert/selfsigned_key.pem",
 #       certfile: "priv/cert/selfsigned.pem"

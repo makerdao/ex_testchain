@@ -1,6 +1,6 @@
 ## WS API
-ExTestchain will use special port `4001` for internal communication.
-This port is exposed by default and you don't need to add `--expose 4001` to `docker run` command.
+ExTestchain will use special port `4000` for internal communication.
+This port is exposed by default and you don't need to add `--expose 4000` to `docker run` command.
 
 WS API is based on [Phoenix Channels](https://hexdocs.pm/phoenix/channels.html#content)
 
@@ -179,14 +179,14 @@ api_channel
 ```
 
 Another option for removing chain is HTTP endpoint: 
-`DELETE http://localhost:4001/chain/{chain_id}`
+`DELETE http://localhost:4000/chain/{chain_id}`
 
 
 ### Chain details
 To load chain details you could use GET HTTP endpoint `/chain/chain_id`
 
 Example: 
-`http://localhost:4001/chain/3922963434540054103`
+`http://localhost:4000/chain/3922963434540054103`
 
 Response:
 ```json
