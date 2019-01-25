@@ -432,6 +432,16 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_call(:config, _from, %State{config: config, status: status} = state) do
+        res =
+          config
+          |> Map.from_struct()
+          |> Map.put(:status, status)
+
+        {:reply, {:ok, res}, state}
+      end
+
+      @doc false
       def handle_call(
             :take_internal_snapshot,
             _from,

@@ -57,6 +57,14 @@ defmodule WebApiWeb.ChainController do
     end
   end
 
+  # Load list of chains
+  def chain_list(conn, _) do
+    with list when is_list(list) <- Chain.list() do
+      conn
+      |> json(%{status: 0, list: list})
+    end
+  end
+
   # Load chain details for running chain
   def details(conn, %{"id" => id}) do
     with {:ok, info} <- Chain.details(id) do

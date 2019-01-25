@@ -108,6 +108,12 @@ defmodule Chain do
   def details(id), do: GenServer.call(get_pid(id), :details)
 
   @doc """
+  Get running chain configuration
+  """
+  @spec get_config(Chain.evm_id()) :: {:ok, Chain.EVM.Config.t()} | {:error, term()}
+  def get_config(id), do: GenServer.call(get_pid(id), :config)
+
+  @doc """
   Set new `notify_pid` for exising chain
   """
   @spec new_notify_pid(Chain.evm_id(), pid()) :: :ok
@@ -193,23 +199,26 @@ defmodule Chain do
   @doc """
   Load list of all active (running) chains from system
   """
-  @spec active_list() :: [map()]
-  def active_list() do
+  @spec list() :: [map()]
+  def list() do
     Chain.EVM.Supervisor
     |> DynamicSupervisor.which_children()
     |> Enum.map(fn {_, pid, _, _} -> pid end)
     |> Enum.map(&Registry.keys(Chain.EVM.Registry, &1))
     |> List.flatten()
     |> Enum.map(fn id ->
-      case details(id) do
-        {:ok, details} ->
-          details
+      case get_config(id) do
+        {:ok, config} ->
+          config
+          |> Map.drop([:notify_pid])
 
         _ ->
           nil
       end
     end)
     |> Enum.reject(&is_nil/1)
+    |> Kernel.++(Storage.list())
+    |> Enum.uniq_by(fn %{id: id} -> id end)
   end
 
   @doc """
