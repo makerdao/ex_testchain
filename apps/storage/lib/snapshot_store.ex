@@ -32,7 +32,7 @@ defmodule Storage.SnapshotStore do
   Store new snapshot into local DB
   """
   @spec store(Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
-  def store(%{__stuct__: Chain.Snapshot.Details, id: id, chain: chain} = snapshot),
+  def store(%{__struct__: Chain.Snapshot.Details, id: id, chain: chain} = snapshot),
     do: :dets.insert(table(), {id, chain, snapshot})
 
   @doc """
