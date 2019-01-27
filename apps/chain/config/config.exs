@@ -37,7 +37,7 @@ config :chain, snapshot_db_path: :"/tmp/db/snapshots"
 # List of ports available for evm allocation
 config :chain, evm_port_range: 8500..8600
 
-config :chain, backend_proxy_node: :"backend@127.0.0.1"
+config :chain, backend_proxy_node: :"testchain_backendgateway@127.0.0.1"
 config :chain, backend_proxy_node_reconnection_timeout: 5_000
 
 # Default location of account password file. 
