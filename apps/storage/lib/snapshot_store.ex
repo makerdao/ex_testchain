@@ -5,8 +5,6 @@ defmodule Storage.SnapshotStore do
   use GenServer
   require Logger
 
-  alias Chain.Snapshot.Details, as: SnapshotDetails
-
   # DB file name
   @table "snapshots"
 
@@ -34,7 +32,7 @@ defmodule Storage.SnapshotStore do
   Store new snapshot into local DB
   """
   @spec store(Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
-  def store(%SnapshotDetails{id: id, chain: chain} = snapshot),
+  def store(%{__stuct__: Chain.Snapshot.Details, id: id, chain: chain} = snapshot),
     do: :dets.insert(table(), {id, chain, snapshot})
 
   @doc """
