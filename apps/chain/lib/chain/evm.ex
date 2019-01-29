@@ -690,7 +690,8 @@ defmodule Chain.EVM do
              db_path: db_path,
              notify_pid: pid,
              http_port: http_port,
-             ws_port: ws_port
+             ws_port: ws_port,
+             gas_limit: gas_limit
            }) do
         # Making request using async to not block scheduler
         [{:ok, coinbase}, {:ok, accounts}] =
@@ -705,6 +706,7 @@ defmodule Chain.EVM do
           id: id,
           coinbase: coinbase,
           accounts: accounts,
+          gas_limit: gas_limit,
           rpc_url: "http://#{@front_url}:#{http_port}",
           ws_url: "ws://#{@front_url}:#{ws_port}"
         }

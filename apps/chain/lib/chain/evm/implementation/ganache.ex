@@ -160,7 +160,8 @@ defmodule Chain.EVM.Implementation.Ganache do
            network_id: network_id,
            http_port: http_port,
            output: output,
-           block_mine_time: block_mine_time
+           block_mine_time: block_mine_time,
+           gas_limit: gas_limit
          },
          accounts
        ) do
@@ -181,7 +182,8 @@ defmodule Chain.EVM.Implementation.Ganache do
       "--noVMErrorsOnRPCResponse",
       "-i #{network_id}",
       "-p #{http_port}",
-      "--db #{db_path} ",
+      "--db #{db_path}",
+      "--gasLimit #{gas_limit}",
       inline_accounts(accounts),
       get_block_mine_time(block_mine_time),
       get_output(output)

@@ -78,7 +78,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
         eip158Block: 0
       },
       difficulty: genesis |> Map.get(:difficulty, 1) |> to_string(),
-      gasLimit: genesis |> Map.get(:gas_limit, 2_100_000) |> to_string(),
+      gasLimit: genesis |> Map.get(:gas_limit, 6_000_000) |> to_string(),
       alloc: build_alloc(accounts)
     }
   end

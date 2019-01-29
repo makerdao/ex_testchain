@@ -163,12 +163,16 @@ defmodule Chain.EVM.Implementation.Geth do
   #
 
   # Writing `genesis.json` file into defined `db_path`
-  defp write_genesis(%Config{db_path: db_path, network_id: chain_id, id: id}, accounts) do
+  defp write_genesis(
+         %Config{db_path: db_path, network_id: chain_id, id: id, gas_limit: gas_limit},
+         accounts
+       ) do
     Logger.debug("#{id}: Writring genesis file to `#{db_path}/genesis.json`")
 
     %Genesis{
       chain_id: chain_id,
-      accounts: accounts
+      accounts: accounts,
+      gas_limit: gas_limit
     }
     |> Genesis.write(db_path)
   end
@@ -181,34 +185,28 @@ defmodule Chain.EVM.Implementation.Geth do
            http_port: http_port,
            ws_port: ws_port,
            output: output,
-           block_mine_time: block_mine_time
+           block_mine_time: block_mine_time,
+           gas_limit: gas_limit
          },
          accounts
        ) do
     [
       executable!(),
       "--dev",
-      "--datadir",
-      db_path,
+      "--datadir #{db_path}",
       get_block_mine_time(block_mine_time),
-      "--networkid",
-      network_id |> to_string(),
+      "--networkid #{network_id}",
+      "--nousb",
       "--ipcdisable",
       "--rpc",
-      "--rpcport",
-      http_port |> to_string(),
-      "--rpcapi",
-      "admin,personal,eth,miner,debug,txpool,net",
+      "--rpcport #{http_port}",
+      "--rpcapi admin,personal,eth,miner,debug,txpool,net",
       "--ws",
-      "--wsport",
-      ws_port |> to_string(),
+      "--wsport #{ws_port}",
       "--wsorigins=\"*\"",
       "--gasprice=\"2000000000\"",
-      "--targetgaslimit=\"9000000000000\"",
-      # "--mine",
-      # "--minerthreads=1",
+      "--targetgaslimit=\"#{gas_limit}\"",
       "--password=#{AccountsCreator.password_file()}",
-      get_etherbase(accounts),
       get_unlock(accounts),
       "console",
       get_output(output)
@@ -227,14 +225,6 @@ defmodule Chain.EVM.Implementation.Geth do
     do: "--dev.period=\"#{time}\""
 
   defp get_block_mine_time(_), do: ""
-
-  # get first created account. it will be coinbase
-  defp get_etherbase([]), do: ""
-
-  defp get_etherbase([%Account{address: <<"0x", address::binary>>} | _]),
-    do: "--etherbase=\"#{address}\""
-
-  defp get_etherbase([%Account{address: address} | _]), do: "--etherbase=\"#{address}\""
 
   # combine list of accounts to unlock `--unlock 0x....,0x.....`
   defp get_unlock([]), do: ""

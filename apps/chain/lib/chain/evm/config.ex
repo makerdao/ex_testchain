@@ -11,6 +11,7 @@ defmodule Chain.EVM.Config do
   - `network_id` - Network ID (Default: `999`)
   - `db_path` - Specify a path to a directory to save the chain database
   - `block_mine_time` - Block period to use in developer mode (0 = mine only if transaction pending) (default: 0)
+  - `gas_limit` - The block gas limit (defaults to `9000000000000`)
   - `accounts` - How many accoutn should be created on start (Default: `1`)
   - `notify_pid` - Internal process id that will be notified on some chain events
   - `output` - Path to logs file. If empty string passing logs will be stored into `db_path <> /out.log`. To disable logging pass `nil`
@@ -27,6 +28,7 @@ defmodule Chain.EVM.Config do
           network_id: non_neg_integer(),
           db_path: binary(),
           block_mine_time: non_neg_integer(),
+          gas_limit: pos_integer(),
           accounts: non_neg_integer(),
           output: binary,
           notify_pid: nil | pid(),
@@ -42,6 +44,7 @@ defmodule Chain.EVM.Config do
             network_id: 999,
             db_path: "",
             block_mine_time: 0,
+            gas_limit: 9_000_000_000_000,
             accounts: 1,
             output: "",
             notify_pid: nil,
