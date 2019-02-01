@@ -15,13 +15,13 @@ defmodule Chain.EVM do
   @typedoc """
   List of EVM lifecircle statuses
 
-  Meanings: 
-   
+  Meanings:
+
   - `:none` - Did nothing. Initial status
   - `:starting` - Starting chain process (Not operational)
   - `:active` - Fully operational chain
   - `:terminating` - Termination process started (Not operational)
-  - `:terminated` - Chain terminated (Not operational) 
+  - `:terminated` - Chain terminated (Not operational)
   - `:snapshot_taking` - EVM is stopping/stoped to make hard snapshot for evm DB. (Not operational)
   - `:snapshot_taken` - EVM took snapshot and now is in starting process (Not operational)
   - `:snapshot_reverting` - EVM stopping/stoped and in process of restoring snapshot (Not operational)
@@ -67,7 +67,7 @@ defmodule Chain.EVM do
   @doc """
   This callback is called on starting evm instance. Here EVM should be started and validated RPC.
   The argument is configuration for EVM.
-  In must return `{:ok, state}`, that `state` will be keept as in `GenServer` and can be 
+  In must return `{:ok, state}`, that `state` will be keept as in `GenServer` and can be
   retrieved in futher functions.
   """
   @callback start(config :: Chain.EVM.Config.t()) :: {:ok, state :: any()} | {:error, term()}
@@ -110,13 +110,13 @@ defmodule Chain.EVM do
   Callback will be invoked on internal spanshot.
 
   Some chains like `ganache` has internal snapshoting functionality
-  And this functionality might be used by some tests/scripts. 
+  And this functionality might be used by some tests/scripts.
   """
   @callback take_internal_snapshot(config :: Chain.EVM.Config.t(), state :: any()) ::
               action_reply()
 
   @doc """
-  Callback will be invoked on reverting internal snapshot by it's id. 
+  Callback will be invoked on reverting internal snapshot by it's id.
 
   Working for only chains like `ganache` that has internal snapshots functionality
   """
@@ -134,7 +134,7 @@ defmodule Chain.EVM do
   Should return list of initial accounts for chain.
   By default they will be stored into `{db_path}/addresses.json` file in JSON format
 
-  Reply should be in format 
+  Reply should be in format
   `{:ok, [Chain.EVM.Account.t()]} | {:error, term()}`
   """
   @callback initial_accounts(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
@@ -150,9 +150,6 @@ defmodule Chain.EVM do
       use GenServer, restart: :transient
 
       @behaviour Chain.EVM
-
-      # Outside world URL for chain to be accessible
-      @front_url Application.get_env(:chain, :front_url)
 
       require Logger
 
@@ -587,8 +584,8 @@ defmodule Chain.EVM do
           ) do
         Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
 
-        # I have to make terminate function with 3 params. ptherwise it might override 
-        # `GenServer.terminate/2` 
+        # I have to make terminate function with 3 params. ptherwise it might override
+        # `GenServer.terminate/2`
         res = terminate(config.id, config, internal_state)
 
         # Notify that status changed to :terminated
@@ -641,7 +638,7 @@ defmodule Chain.EVM do
       def started?(%Config{id: id, http_port: http_port}, _) do
         Logger.debug("#{id}: Checking if EVM online")
 
-        case JsonRpc.eth_coinbase("http://#{@front_url}:#{http_port}") do
+        case JsonRpc.eth_coinbase("http://localhost:#{http_port}") do
           {:ok, <<"0x", _::binary>>} ->
             true
 
@@ -707,8 +704,8 @@ defmodule Chain.EVM do
           coinbase: coinbase,
           accounts: accounts,
           gas_limit: gas_limit,
-          rpc_url: "http://#{@front_url}:#{http_port}",
-          ws_url: "ws://#{@front_url}:#{ws_port}"
+          rpc_url: "http://#{front_url()}:#{http_port}",
+          ws_url: "ws://#{front_url()}:#{ws_port}"
         }
       end
 
@@ -765,6 +762,9 @@ defmodule Chain.EVM do
 
       # Load list of initial accoutns from storage
       defp load_accounts(db_path), do: AccountStore.load(db_path)
+
+      # Get front url for chain
+      defp front_url(), do: Application.get_env(:chain, :front_url)
 
       # Allow to override functions
       defoverridable handle_started: 2,

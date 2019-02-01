@@ -18,7 +18,8 @@ config :chain, kill_timeout: 180_000
 # For local development it should be `localhost`
 # For production instance in cloud it will be changed to real DNS address.
 # NOTE: you don't need protocol here (`http:// | ws://`) it will be set by evm provider
-config :chain, front_url: "localhost"
+# config :chain, front_url: "localhost"
+config :chain, front_url: "host.docker.internal"
 
 # Default folder where all chain db's will be created, please use full path
 # Note that chain id will be added as final folder.
