@@ -14,7 +14,7 @@ config :porcelain, driver: Porcelain.Driver.Basic
 config :chain, kill_timeout: 180_000
 
 # URL that will be placed to chain.
-# It's actually outside world URL to testchain. 
+# It's actually outside world URL to testchain.
 # For local development it should be `localhost`
 # For production instance in cloud it will be changed to real DNS address.
 # NOTE: you don't need protocol here (`http:// | ws://`) it will be set by evm provider
@@ -24,7 +24,7 @@ config :chain, front_url: "host.docker.internal"
 # Default folder where all chain db's will be created, please use full path
 # Note that chain id will be added as final folder.
 # Example: with `config :chain, base_path: "/tmp/chains"`
-# Final chain path will be 
+# Final chain path will be
 # `/tmp/chains/some-id-here`
 config :chain, base_path: "/tmp/chains"
 
@@ -41,8 +41,8 @@ config :chain, evm_port_range: 8500..8600
 config :chain, backend_proxy_node: :"testchain_backendgateway@127.0.0.1"
 config :chain, backend_proxy_node_reconnection_timeout: 5_000
 
-# Default location of account password file. 
-# For dev env it will be in related to project root. In Docker it will be replaced with 
+# Default location of account password file.
+# For dev env it will be in related to project root. In Docker it will be replaced with
 # file from `rel/config/config.exs`
 config :chain,
   geth_password_file: Path.expand("#{__DIR__}/../../../priv/presets/geth/account_password"),
