@@ -11,7 +11,7 @@ config :chain, ganache_wrapper_file: "/opt/built/priv/presets/ganache/wrapper.sh
 
 config :chain, backend_proxy_node: :"testchain_backendgateway@testchain-backendgateway.local"
 
-config :chain, front_url: "testchain_backendgateway"
+config :chain, front_url: "localhost"
 
 # Place where all dets DBs will be
 config :storage, dets_db_path: "/opt/chains"
