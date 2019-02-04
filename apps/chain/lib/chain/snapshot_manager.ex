@@ -11,6 +11,9 @@ defmodule Chain.SnapshotManager do
   alias Porcelain.Result
   alias Storage.SnapshotStore
 
+  # Snapshot taking/restoring timeout
+  @timeout 30_000
+
   @doc false
   def start_link(_) do
     unless System.find_executable("tar") do
@@ -57,7 +60,7 @@ defmodule Chain.SnapshotManager do
     result =
       __MODULE__
       |> Task.async(:compress, [from, to])
-      |> Task.await()
+      |> Task.await(@timeout)
 
     case result do
       {:ok, _} ->
@@ -94,7 +97,7 @@ defmodule Chain.SnapshotManager do
     result =
       __MODULE__
       |> Task.async(:extract, [from, to])
-      |> Task.await()
+      |> Task.await(@timeout)
 
     case result do
       {:ok, _} ->
@@ -157,6 +160,9 @@ defmodule Chain.SnapshotManager do
     case Porcelain.shell(command, out: nil) do
       %Result{err: nil, status: 0} ->
         {:ok, to}
+
+      %Result{err: nil, status: nil} ->
+          {:ok, to}
 
       %Result{status: status, err: err} ->
         {:error, "Failed with status: #{inspect(status)} and error: #{inspect(err)}"}
