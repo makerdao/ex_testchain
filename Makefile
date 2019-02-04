@@ -43,7 +43,7 @@ build: ## Build elixir application with testchain and WS API
 		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
 		--build-arg APP_NAME=$(APP_NAME) \
         --build-arg APP_VSN=$(APP_VSN) \
-		--build-arg EVM_IMAGE=$(EVM_NAME):latest \
+		--build-arg EVM_IMAGE=$(DOCKER_ID_USER)/$(EVM_NAME):latest \
         -t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) \
         -t $(DOCKER_ID_USER)/$(APP_NAME):latest .
 .PHONY: build
