@@ -1,6 +1,6 @@
 # The version of Alpine to use for the final image
 ARG ALPINE_VERSION=edge
-ARG EVM_IMAGE=ex_evm:latest
+ARG EVM_IMAGE=makerdao/ex_evm:latest
 
 FROM alpine:${ALPINE_VERSION} AS builder
 
