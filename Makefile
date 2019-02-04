@@ -19,9 +19,7 @@ lint:
 
 docker-push:
 	@echo "Pushing docker images"
-	@docker tag $(EVM_NAME):$(EVM_VSN)-$(BUILD) $(DOCKER_ID_USER)/$(EVM_NAME)
 	@docker push $(DOCKER_ID_USER)/$(EVM_NAME)
-	@docker tag $(APP_NAME):$(APP_VSN)-$(BUILD) $(DOCKER_ID_USER)/$(APP_NAME)
 	@docker push $(DOCKER_ID_USER)/$(APP_NAME)
 .PHONY: docker-push
 
@@ -35,8 +33,8 @@ deps: ## Load all required deps for project
 build-evm: ## Build the Docker image for geth/ganache/other evm
 	@docker build -f ./Dockerfile.evm \
 		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
-		-t $(EVM_NAME):$(EVM_VSN)-$(BUILD) \
-		-t $(EVM_NAME):latest .
+		-t $(DOCKER_ID_USER)/$(EVM_NAME):$(EVM_VSN)-$(BUILD) \
+		-t $(DOCKER_ID_USER)/$(EVM_NAME):latest .
 
 .PHONY: build-evm
 
@@ -46,15 +44,15 @@ build: ## Build elixir application with testchain and WS API
 		--build-arg APP_NAME=$(APP_NAME) \
         --build-arg APP_VSN=$(APP_VSN) \
 		--build-arg EVM_IMAGE=$(EVM_NAME):latest \
-        -t $(APP_NAME):$(APP_VSN)-$(BUILD) \
-        -t $(APP_NAME):latest .	
+        -t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) \
+        -t $(DOCKER_ID_USER)/$(APP_NAME):latest .
 .PHONY: build
 
 run-evm: ## Run evm image after build
 	@docker run --rm -it \
 			--expose 8545 \
 			-p 8545:8545 \
-			${EVM_NAME}:latest
+			$(DOCKER_ID_USER)/$(EVM_NAME):latest
 .PHONY: run-evm
 
 run: ## Run the app in Docker
@@ -64,7 +62,7 @@ run: ## Run the app in Docker
 		--expose 4000 -p 4000:4000 \
 		--expose 8500-8600 -p 8500-8600:8500-8600 \
 		--expose 9100-9105 -p 9100-9105:9100-9105 \
-		--rm -it $(APP_NAME):latest
+		--rm -it $(DOCKER_ID_USER)/$(APP_NAME):latest
 .PHONY: run
 
 dev: ## Run local node with correct values
