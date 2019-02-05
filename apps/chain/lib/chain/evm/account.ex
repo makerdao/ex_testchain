@@ -6,7 +6,7 @@ defmodule Chain.EVM.Account do
   """
 
   # Default balance in wei
-  @default_balance 100_000_000_000_000_000_000
+  @default_balance 100_000_000_000_000_000_000_000
 
   @type t :: %__MODULE__{
           address: binary,

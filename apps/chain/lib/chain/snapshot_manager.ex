@@ -162,7 +162,7 @@ defmodule Chain.SnapshotManager do
         {:ok, to}
 
       %Result{err: nil, status: nil} ->
-          {:ok, to}
+        {:ok, to}
 
       %Result{status: status, err: err} ->
         {:error, "Failed with status: #{inspect(status)} and error: #{inspect(err)}"}
