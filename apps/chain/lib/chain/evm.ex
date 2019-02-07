@@ -233,6 +233,20 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_continue(:stop, %State{config: config, internal_state: internal_state} = state) do
+        case stop(config, internal_state) do
+          {:ok, new_internal_state} ->
+            Logger.debug("#{config.id}: Successfully stopped EVM")
+            notify_status(config, :terminating)
+            {:noreply, %State{state | status: :terminating, internal_state: new_internal_state}}
+
+          {:error, err} ->
+            Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")
+            {:stop, :shutdown, state}
+        end
+      end
+
+      @doc false
       # method will be called after snapshot for evm was taken and EVM switched to `:snapshot_taken` status.
       # here evm will be started again
       def handle_continue(
@@ -252,9 +266,15 @@ defmodule Chain.EVM do
 
       @doc false
       def handle_info({:DOWN, ref, :process, pid, _}, %State{config: config} = state) do
-        Logger.warn("#{config.id} Chain monitoring process failed #{inspect(pid)}")
+        Logger.warn("#{config.id} EVM monitoring failed #{inspect(pid)}. Termination in 1 min")
         Process.demonitor(ref)
-        {:noreply, state}
+        {:noreply, state, 60_000}
+      end
+
+      @doc false
+      def handle_info(:timeout, %State{config: %{id: id}} = state) do
+        Logger.warn("#{id}: Monitoring process didn't reconnect. Terminating EVM")
+        {:noreply, state, {:continue, :stop}}
       end
 
       @doc false
@@ -537,21 +557,8 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def handle_cast(
-            :stop,
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        case stop(config, internal_state) do
-          {:ok, new_internal_state} ->
-            Logger.debug("#{config.id}: Successfully stopped EVM")
-            notify_status(config, :terminating)
-            {:noreply, %State{state | status: :terminating, internal_state: new_internal_state}}
-
-          {:error, err} ->
-            Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")
-            {:stop, :shutdown, state}
-        end
-      end
+      def handle_cast(:stop, %State{} = state),
+        do: {:noreply, state, {:continue, :stop}}
 
       @doc false
       def handle_cast(
