@@ -2,7 +2,7 @@ use Mix.Config
 
 config :logger,
   backends: [:console],
-  level: :debug,
+  level: :warn,
   compile_time_purge_matching: [
     [level_lower_than: :warn]
   ]
