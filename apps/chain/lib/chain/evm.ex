@@ -591,7 +591,7 @@ defmodule Chain.EVM do
           ) do
         Logger.debug("#{config.id} Terminating evm with reason: #{inspect(reason)}")
 
-        # I have to make terminate function with 3 params. ptherwise it might override
+        # I have to make terminate function with 3 params. otherwise it might override
         # `GenServer.terminate/2`
         res = terminate(config.id, config, internal_state)
 
@@ -756,9 +756,8 @@ defmodule Chain.EVM do
 
       # Send msg to check if evm started
       # Checks when EVM is started in async mode.
-      defp check_started(pid, retries \\ 0) do
-        Process.send_after(pid, {:check_started, retries}, 200)
-      end
+      defp check_started(pid, retries \\ 0),
+        do: Process.send_after(pid, {:check_started, retries}, 200)
 
       # Store initial accounts
       # will return given accoutns
