@@ -51,8 +51,7 @@ release :ex_testchain do
   set applications: [
     :runtime_tools,
     chain: :permanent,
-    json_rpc: :permanent,
-    web_api: :permanent
+    json_rpc: :permanent
   ]
 
   set config_providers: [

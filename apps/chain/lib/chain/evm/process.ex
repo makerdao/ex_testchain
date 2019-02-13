@@ -8,11 +8,18 @@ defmodule Chain.EVM.Process do
           accounts: [Chain.EVM.Account.t()],
           rpc_url: binary,
           ws_url: binary,
-          gas_limit: pos_integer()
+          gas_limit: pos_integer(),
+          network_id: pos_integer()
         }
 
   @enforce_keys [:id]
-  defstruct id: nil, coinbase: "", accounts: [], rpc_url: "", ws_url: "", gas_limit: 6_000_000
+  defstruct id: nil,
+            coinbase: "",
+            accounts: [],
+            rpc_url: "",
+            ws_url: "",
+            gas_limit: 6_000_000,
+            network_id: 999
 end
 
 defimpl Jason.Encoder, for: Chain.EVM.Process do

@@ -9,9 +9,6 @@ defmodule Chain do
 
   require Logger
 
-  # get timeout for call requests
-  @timeout Application.get_env(:chain, :kill_timeout)
-
   @typedoc """
   Chain EVM type. 
 
@@ -138,20 +135,6 @@ defmodule Chain do
   end
 
   @doc """
-  Start automining feature
-  """
-  @spec start_mine(Chain.evm_id()) :: :ok | {:error, term()}
-  def start_mine(id),
-    do: GenServer.cast(get_pid!(id), :start_mine)
-
-  @doc """
-  Stop automining feature
-  """
-  @spec stop_mine(Chain.evm_id()) :: :ok | {:error, term()}
-  def stop_mine(id),
-    do: GenServer.cast(get_pid!(id), :stop_mine)
-
-  @doc """
   Generates new chain snapshot and places it into given path
   If path does not exist - system will try to create this path
 
@@ -172,23 +155,6 @@ defmodule Chain do
   @spec revert_snapshot(Chain.evm_id(), Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
   def revert_snapshot(id, snapshot),
     do: GenServer.cast(get_pid!(id), {:revert_snapshot, snapshot})
-
-  @doc """
-  Take internal snapshot on chain. 
-  That function should use internal chain snapshoting features
-  For example for ganache there is `evm_snapshot` command
-  """
-  @spec take_internal_snapshot(Chain.evm_id()) :: {:ok, binary | number} | {:error, term()}
-  def take_internal_snapshot(id),
-    do: GenServer.call(get_pid!(id), :take_internal_snapshot, @timeout)
-
-  @doc """
-  Reverting chain to given shapshot id.
-  If chain missing internal snapshoting features it might ignore this function.
-  """
-  @spec revert_internal_snapshot(Chain.evm_id(), binary | number) :: :ok | {:error, term()}
-  def revert_internal_snapshot(id, snapshot_id),
-    do: GenServer.call(get_pid!(id), {:revert_internal_snapshot, snapshot_id})
 
   @doc """
   Load list of initial accounts for chain

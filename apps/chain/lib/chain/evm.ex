@@ -97,33 +97,6 @@ defmodule Chain.EVM do
               action_reply()
 
   @doc """
-  Should start mining process for EVM
-  """
-  @callback start_mine(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
-
-  @doc """
-  Stop mining process for EVM
-  """
-  @callback stop_mine(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
-
-  @doc """
-  Callback will be invoked on internal spanshot.
-
-  Some chains like `ganache` has internal snapshoting functionality
-  And this functionality might be used by some tests/scripts.
-  """
-  @callback take_internal_snapshot(config :: Chain.EVM.Config.t(), state :: any()) ::
-              action_reply()
-
-  @doc """
-  Callback will be invoked on reverting internal snapshot by it's id.
-
-  Working for only chains like `ganache` that has internal snapshots functionality
-  """
-  @callback revert_internal_snapshot(id :: binary, config :: Chain.EVM.Config.t(), state :: any()) ::
-              action_reply()
-
-  @doc """
   This callback is called just before the Process goes down. This is a good place for closing connections.
   """
   @callback terminate(id :: Chain.evm_id(), config :: Chain.EVM.Config.t(), state :: any()) ::
@@ -460,28 +433,6 @@ defmodule Chain.EVM do
 
       @doc false
       def handle_call(
-            :take_internal_snapshot,
-            _from,
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        config
-        |> take_internal_snapshot(internal_state)
-        |> handle_action(state)
-      end
-
-      @doc false
-      def handle_call(
-            {:revert_internal_snapshot, snapshot_id},
-            _from,
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        snapshot_id
-        |> revert_internal_snapshot(config, internal_state)
-        |> handle_action(state)
-      end
-
-      @doc false
-      def handle_call(
             :initial_accounts,
             _from,
             %State{config: config, internal_state: internal_state} = state
@@ -559,30 +510,6 @@ defmodule Chain.EVM do
       @doc false
       def handle_cast(:stop, %State{} = state),
         do: {:noreply, state, {:continue, :stop}}
-
-      @doc false
-      def handle_cast(
-            :start_mine,
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        Logger.debug("#{config.id}: Starting mining process")
-
-        config
-        |> start_mine(internal_state)
-        |> handle_action(state)
-      end
-
-      @doc false
-      def handle_cast(
-            :stop_mine,
-            %State{config: config, internal_state: internal_state} = state
-          ) do
-        Logger.debug("#{config.id}: Stopping mining process")
-
-        config
-        |> stop_mine(internal_state)
-        |> handle_action(state)
-      end
 
       @doc false
       def terminate(
@@ -670,18 +597,6 @@ defmodule Chain.EVM do
       @impl Chain.EVM
       def version(), do: "x.x.x"
 
-      @impl Chain.EVM
-      def start_mine(_, _), do: :ignore
-
-      @impl Chain.EVM
-      def stop_mine(_, _), do: :ignore
-
-      @impl Chain.EVM
-      def take_internal_snapshot(_config, state), do: {:reply, {:error, :not_implemented}, state}
-
-      @impl Chain.EVM
-      def revert_internal_snapshot(_id, _config, _state), do: :ignore
-
       ########
       #
       # Private functions for EVM
@@ -695,6 +610,7 @@ defmodule Chain.EVM do
              notify_pid: pid,
              http_port: http_port,
              ws_port: ws_port,
+             network_id: network_id,
              gas_limit: gas_limit
            }) do
         # Making request using async to not block scheduler
@@ -708,6 +624,7 @@ defmodule Chain.EVM do
 
         %Chain.EVM.Process{
           id: id,
+          network_id: network_id,
           coinbase: coinbase,
           accounts: accounts,
           gas_limit: gas_limit,
@@ -776,11 +693,7 @@ defmodule Chain.EVM do
       defoverridable handle_started: 2,
                      started?: 2,
                      handle_msg: 3,
-                     start_mine: 2,
-                     stop_mine: 2,
-                     version: 0,
-                     take_internal_snapshot: 2,
-                     revert_internal_snapshot: 3
+                     version: 0
     end
   end
 

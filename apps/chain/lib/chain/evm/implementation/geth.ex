@@ -63,18 +63,6 @@ defmodule Chain.EVM.Implementation.Geth do
   end
 
   @impl Chain.EVM
-  def start_mine(%Config{http_port: http_port}, state) do
-    {:ok, nil} = exec_command(http_port, "miner_start", [1])
-    {:ok, %{state | mining: true}}
-  end
-
-  @impl Chain.EVM
-  def stop_mine(%Config{http_port: http_port}, state) do
-    {:ok, nil} = exec_command(http_port, "miner_stop")
-    {:ok, %{state | mining: false}}
-  end
-
-  @impl Chain.EVM
   def terminate(id, config, nil) do
     Logger.error("#{id} could not start process... Something wrong. Config: #{inspect(config)}")
     :ok

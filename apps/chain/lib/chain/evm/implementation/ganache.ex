@@ -38,64 +38,12 @@ defmodule Chain.EVM.Implementation.Ganache do
   end
 
   @impl Chain.EVM
-  def start_mine(%Config{http_port: http_port}, state) do
-    {:ok, true} = exec_command(http_port, "miner_start")
-    {:ok, %{state | mining: true}}
-  end
-
-  @impl Chain.EVM
-  def stop_mine(%Config{http_port: http_port}, state) do
-    {:ok, true} = exec_command(http_port, "miner_stop")
-    {:ok, %{state | mining: false}}
-  end
-
-  @impl Chain.EVM
   def handle_msg(_str, _, %{log_file: nil}), do: :ok
 
   def handle_msg(str, _, %{log_file: file}) do
     IO.binwrite(file, str)
     :ok
   end
-
-  @impl Chain.EVM
-  def take_internal_snapshot(
-        %{id: id, http_port: http_port},
-        state
-      ) do
-    Logger.debug("#{id}: Making snapshot")
-
-    case exec_command(http_port, "evm_snapshot") do
-      {:ok, snapshot_id} ->
-        Logger.debug("#{id} Snapshot made with id #{snapshot_id}")
-        {:reply, {:ok, snapshot_id}, state}
-
-      _ ->
-        Logger.error("#{id}: Failed to make snapshot")
-        {:reply, {:error, :unknown}, state}
-    end
-  end
-
-  @impl Chain.EVM
-  def revert_internal_snapshot(
-        <<"0x", _::binary>> = snapshot,
-        %{id: id, http_port: http_port},
-        state
-      ) do
-    Logger.debug("#{id} Reverting snapshot #{snapshot}")
-
-    case exec_command(http_port, "evm_revert", snapshot) do
-      {:ok, true} ->
-        Logger.debug("#{id} Snapshot #{snapshot} reverted")
-        {:reply, :ok, state}
-
-      _ ->
-        Logger.error("#{id}: Failed to revert snapshot #{snapshot}")
-        {:reply, {:error, :unknown}, state}
-    end
-  end
-
-  def revert_internal_snapshot(_, _config, state),
-    do: {:reply, {:error, :wrong_snapshot_id}, state}
 
   @impl Chain.EVM
   def terminate(id, _config, %{port: port, log_file: file}) do
