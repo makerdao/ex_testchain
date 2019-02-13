@@ -1,4 +1,8 @@
 ## WS API
+
+**DEPRECATED**
+**API moved into https://github.com/makerdao/testchain-backendgateway**
+
 ExTestchain will use special port `4000` for internal communication.
 This port is exposed by default and you don't need to add `--expose 4000` to `docker run` command.
 
@@ -32,7 +36,7 @@ Some examples you might be find in [index.html](../apps/web_api/priv/static/inde
 
 ## API description
 
-All description is based on [Phoenix.Message](https://hexdocs.pm/phoenix/channels.html#messages) scructure 
+All description is based on [Phoenix.Message](https://hexdocs.pm/phoenix/channels.html#messages) scructure
 
 ### List of all chains
 ```js
@@ -68,10 +72,10 @@ api_channel
 }
 ```
 
-As response you will get chain id that initializing. 
+As response you will get chain id that initializing.
 Example: `{id: "15733048862987664459"}`
 
-**Note** 
+**Note**
 Returned ID does not mean that chain started successfully.
 You have to wait for event from chain channel. See [Events](#events)
 
@@ -87,10 +91,10 @@ You have to wait for event from chain channel. See [Events](#events)
 }
 ```
 
-As response you will get chain id that initializing. 
+As response you will get chain id that initializing.
 Example: `{id: "15733048862987664459"}`
 
-**Note** 
+**Note**
 Returned ID does not mean that chain started successfully.
 You have to wait for event from chain channel. See [Events](#events)
 
@@ -178,14 +182,14 @@ api_channel
     .receive('error', console.error)
 ```
 
-Another option for removing chain is HTTP endpoint: 
+Another option for removing chain is HTTP endpoint:
 `DELETE http://localhost:4000/chain/{chain_id}`
 
 
 ### Chain details
 To load chain details you could use GET HTTP endpoint `/chain/chain_id`
 
-Example: 
+Example:
 `http://localhost:4000/chain/3922963434540054103`
 
 Response:
@@ -221,8 +225,8 @@ ex_testchain provides you with set of events for handling such situations.
 
 Event are firing only for chains. So you have to listen chain channel `chain:{id_here}`.
 
-Using `phoenix.js` you could add listener for special event. 
-Example: 
+Using `phoenix.js` you could add listener for special event.
+Example:
 ```js
 const channel = socket.channel(`chain:${chain_id}`)
 channel
@@ -239,17 +243,17 @@ channel.on('snapshot_taken', (data) => console.log('Snapshot taked', snapsht_dat
 channel.on('snapshot_reverted', (data) => console.log('Snapshot reverted', data))
 ```
 
-**Note**: 
+**Note**:
 After some actions like `take_snapshot` and `revert_snapshot` chain will be restarted
 And you will receive `started` event again when chain will become operational
 
 List of available events:
  - `started`
  - `stopped`
- - `error` 
- - `snapshot_taken` 
+ - `error`
+ - `snapshot_taken`
  - `snapshot_reverted`
- 
+
 ### Error
 Error event might be fired at any time.
 Event: `error`
@@ -266,7 +270,7 @@ Payload example:
 Event: `started`
 Event will be fired to `api` channel and `chain:${id}` as well.
 
-Payload Example: 
+Payload Example:
 ```js
 {
     "accounts": [
@@ -284,7 +288,7 @@ Event: `snapshot_taken`
 Event will be fired to `chain:${id}` channel.
 `path_to` in Payload is a snapshot id that you will use for restoring snapshot
 
-Payload example: 
+Payload example:
 ```js
 {
     chain: "geth",
@@ -314,4 +318,3 @@ Payload example:
 Event `stopped`
 Event will be fired to `chain:${id}` channel
 Payload will be empty
-

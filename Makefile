@@ -59,7 +59,6 @@ run: ## Run the app in Docker
 	@docker run \
 		-v /tmp/chains:/opt/chains \
 		-v /tmp/snapshots:/opt/snapshots \
-		--expose 4000 -p 4000:4000 \
 		--expose 8500-8600 -p 8500-8600:8500-8600 \
 		--expose 9100-9105 -p 9100-9105:9100-9105 \
 		--rm -it $(DOCKER_ID_USER)/$(APP_NAME):latest

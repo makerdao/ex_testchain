@@ -63,9 +63,7 @@ FROM ${EVM_IMAGE}
 
 # The name of your application/release (required)
 ARG APP_NAME=${APP_NAME}
-ARG PORT=4000
 
-EXPOSE ${PORT}
 EXPOSE 8500-8600
 
 WORKDIR /opt/app
@@ -77,7 +75,7 @@ RUN apk update && \
 
 ENV REPLACE_OS_VARS=true \
     APP_NAME=${APP_NAME} \
-    PORT=${PORT}
+    MIX_ENV=prod
 
 COPY --from=builder /opt/built .
 

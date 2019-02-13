@@ -4,14 +4,13 @@
 This is Elixir MVP implementation of Testchain as a Service.
 
 Right now it implements this features:
- 
+
  - Start/stop new chain (`geth|ganache`)
  - Start/Stop mining process
  - Take/revert snapshot
 
 Other documentation:
  - [Docker support](./docs/DOCKER_SERVICE.md)
- - [Websocket API](./docs/WS_API.md)
 
 ## Requirements
 
@@ -41,7 +40,7 @@ Will install, compile all elixir dependencies and node.js for ganache
 For your local instance you could use `make dev` command
 
 ## Docker support
-For people who don't want to install everything on local machine there is Docker image provided. 
+For people who don't want to install everything on local machine there is Docker image provided.
 
 All details are [here](./docs/DOCKER_SERVICE.md)
 
@@ -85,14 +84,15 @@ To build project you can use:
 $ mix compile
 ```
 
-To run it locally: 
+To run it locally:
 ```bash
 $ iex -S mix phx.server
 ```
 
-This command will start project locally and spawn a HTTP/WS server on port `4000`
+This command will start project locally but for using a HTTP/WS server on port `4000`
+you have to use `makerdao/testchain-backendgateway`
 
-And it will become accesible from anywhere you need.
+And it will become accessible from anywhere you need.
 ## Logging
 For now ExTestchain uses logger in debug mode and all messages will be printed to your CLI.
 To omit this uncomment logger level in `apps/chain/config/config.ex`
