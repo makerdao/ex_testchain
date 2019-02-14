@@ -1,17 +1,24 @@
+# vim: ft=dockerfile
+
 ARG ALPINE_VERSION=edge
 
-FROM alpine:${ALPINE_VERSION} as builder
+FROM golang:1.11-alpine as builder
 
 ARG GANACHE_SUBDIR=./priv/presets/ganache-cli
 
 RUN apk update && \
-    apk add --no-cache make gcc g++ python git bash nodejs npm
+    apk add --no-cache make gcc g++ python git bash nodejs npm musl-dev linux-headers
 COPY ${GANACHE_SUBDIR}/package.json /app/package.json
 COPY ${GANACHE_SUBDIR}/package-lock.json /app/package-lock.json
 WORKDIR /app
 RUN npm install
 COPY ${GANACHE_SUBDIR} .
 RUN npx webpack-cli --config ./webpack/webpack.docker.config.js
+
+# Building VDB geth
+RUN git clone https://github.com/vulcanize/go-ethereum.git && \
+    cd go-ethereum && \
+    make geth
 
 # Release image
 FROM alpine:${ALPINE_VERSION} as runtime
@@ -30,8 +37,12 @@ COPY --from=builder "/app/node_modules/ganache-core/node_modules/websocket/build
 COPY --from=builder "/app/build/ganache-core.docker.cli.js" "./ganache-core.docker.cli.js"
 # COPY --from=builder "/app/build/ganache-core.docker.cli.js.map" "./ganache-core.docker.cli.js.map"
 
+COPY --from=builder "/app/go-ethereum/build/bin/geth" "./geth_vdb"
+
 RUN apk add --no-cache nodejs geth && \
     ln -s /app/ganache-core.docker.cli.js /usr/bin/ganache-cli && \
-    chmod 755 /usr/bin/ganache-cli
+    chmod 755 /usr/bin/ganache-cli && \
+    ln -s /app/geth_vdb /usr/bin/geth_vdb && \
+    chmod 755 /usr/bin/geth_vdb
 
 CMD ["ganache-cli"]
