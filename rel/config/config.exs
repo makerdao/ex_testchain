@@ -8,6 +8,7 @@ config :chain, snapshot_base_path: "/opt/snapshots"
 config :chain, geth_password_file: "/opt/built/priv/presets/geth/account_password"
 config :chain, ganache_executable: "ganache-cli"
 config :chain, ganache_wrapper_file: "/opt/built/priv/presets/ganache/wrapper.sh"
+config :chain, geth_vdb_executable: "geth_vdb"
 
 config :chain, backend_proxy_node: :"testchain_backendgateway@testchain-backendgateway.local"
 
