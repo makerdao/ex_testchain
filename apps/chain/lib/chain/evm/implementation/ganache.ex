@@ -68,9 +68,12 @@ defmodule Chain.EVM.Implementation.Ganache do
 
   @impl Chain.EVM
   def version() do
-    %{err: nil, status: 0, out: out} = Porcelain.shell("#{executable()} --version")
+    %{err: nil, status: 0, out: out} = Porcelain.shell("#{executable!()} --version")
     out
   end
+
+  @impl Chain.EVM
+  def executable!(), do: Application.get_env(:chain, :ganache_executable)
 
   @doc """
   Starting new ganache node based on given config
@@ -126,7 +129,7 @@ defmodule Chain.EVM.Implementation.Ganache do
       # Sorry but this **** never works as you expect so I have to wrap it into "killer" script
       # Otherwise after application will be terminated - ganache still will be running
       wrapper_file,
-      executable(),
+      executable!(),
       "--noVMErrorsOnRPCResponse",
       "-i #{network_id}",
       "-p #{http_port}",
@@ -174,8 +177,6 @@ defmodule Chain.EVM.Implementation.Ganache do
   #####
   # End of list 
   #####
-
-  defp executable(), do: Application.get_env(:chain, :ganache_executable)
 
   # Opens file if it should be opened to store logs from ganache
   # Function should get `Chain.EVM.Config.t()` as input

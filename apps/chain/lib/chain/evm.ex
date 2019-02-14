@@ -65,6 +65,11 @@ defmodule Chain.EVM do
           | {:error, term()}
 
   @doc """
+  This callback shuold return path to EVM executable file
+  """
+  @callback executable!() :: binary
+
+  @doc """
   This callback is called on starting evm instance. Here EVM should be started and validated RPC.
   The argument is configuration for EVM.
   In must return `{:ok, state}`, that `state` will be keept as in `GenServer` and can be

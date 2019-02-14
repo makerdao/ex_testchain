@@ -81,6 +81,17 @@ defmodule Chain.EVM.Implementation.Geth do
     out
   end
 
+  @impl Chain.EVM
+  def executable!() do
+    case System.find_executable("geth") do
+      nil ->
+        throw("No executable 'geth' found in system...")
+
+      path ->
+        path
+    end
+  end
+
   @doc """
   Bootstrap and initialize a new genesis block.
 
@@ -130,20 +141,6 @@ defmodule Chain.EVM.Implementation.Geth do
       when is_binary(http_port) or is_integer(http_port) do
     "http://localhost:#{http_port}"
     |> JsonRpc.call(command, params)
-  end
-
-  @doc """
-  Get path to `geth` executable in system
-  """
-  @spec executable!() :: binary
-  def executable!() do
-    case System.find_executable("geth") do
-      nil ->
-        throw("No executable 'geth' found in system...")
-
-      path ->
-        path
-    end
   end
 
   #
