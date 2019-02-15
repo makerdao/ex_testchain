@@ -197,7 +197,8 @@ defmodule Chain.EVM do
               |> State.status(:terminating, config)
               |> State.internal_state(new_internal_state)
 
-            {:noreply, new_state}
+            # Stop timeout
+            {:noreply, new_state, 60_000}
 
           {:error, err} ->
             Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")
@@ -228,6 +229,12 @@ defmodule Chain.EVM do
         Logger.warn("#{config.id} EVM monitoring failed #{inspect(pid)}. Termination in 1 min")
         Process.demonitor(ref)
         {:noreply, state, 60_000}
+      end
+
+      @doc false
+      def handle_info(:timeout, %State{config: %{id: id}, status: :terminating} = state) do
+        Logger.warn("#{id}: EVM didn't stop after a minute !")
+        {:noreply, state, {:continue, :stop}}
       end
 
       @doc false
@@ -313,7 +320,7 @@ defmodule Chain.EVM do
         rescue
           err ->
             Logger.error("#{id} failed to make snapshot with error #{inspect(err)}")
-            {:noreply, State.status(state, :failed, config)}
+            {:stop, :failed_take_snapshot, State.status(state, :failed, config)}
         end
       end
 
@@ -347,7 +354,8 @@ defmodule Chain.EVM do
               "#{id} failed to revert snapshot #{inspect(snapshot)} with error #{inspect(err)}"
             )
 
-            {:noreply, State.status(state, :failed, config)}
+            # {:noreply, State.status(state, :failed, config)}
+            {:stop, :failed_restore_snapshot, State.status(state, :failed, config)}
         end
       end
 
@@ -518,12 +526,12 @@ defmodule Chain.EVM do
         |> State.status(:terminated, config)
         |> State.internal_state(internal_state)
 
-        # Clean path for chain after it was terminated
-        Config.clean_on_stop(config)
-
         # If exit reason is normal we could send notification that evm stopped
         case reason do
-          :normal ->
+          r when r in ~w(normal shutdown)a ->
+            # Clean path for chain after it was terminated
+            Config.clean_on_stop(config)
+            # Send notification after stop
             Notification.send(config, config.id, :stopped)
 
           other ->
