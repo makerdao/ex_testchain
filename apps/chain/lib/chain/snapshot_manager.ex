@@ -35,6 +35,13 @@ defmodule Chain.SnapshotManager do
   def init(_), do: {:ok, nil}
 
   @doc """
+  Check if given snapshot details are correct and snapshot actually exists
+  """
+  @spec exists?(Chain.Snapshot.Details.t()) :: boolean
+  def exists?(%SnapshotDetails{path: path}), do: File.exists?(path)
+  def exists?(_), do: false
+
+  @doc """
   Create a snapshot and store it into local DB (DETS for now)
   """
   @spec make_snapshot!(binary, Chain.evm_type(), binary) :: Chain.Snapshot.Details.t()
