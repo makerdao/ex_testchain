@@ -30,7 +30,7 @@ $ nix-env -iA nixos.erlangR21
 
 Installing project dependencies is easy:
 ```bash
-$ make do deps.get, deps.compile
+$ mix do deps.get, deps.compile
 ```
 
 Will install, compile all elixir dependencies and node.js for ganache
