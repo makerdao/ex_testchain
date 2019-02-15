@@ -168,8 +168,10 @@ defmodule Chain do
   For `ganache` chain you could provide `id` for others - path to snapshot
   """
   @spec revert_snapshot(Chain.evm_id(), Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
-  def revert_snapshot(id, snapshot),
+  def revert_snapshot(id, %Chain.Snapshot.Details{} = snapshot),
     do: GenServer.cast(get_pid!(id), {:revert_snapshot, snapshot})
+
+  def revert_snapshot(_id, _), do: {:error, "Wrong snapshot details"}
 
   @doc """
   Load list of initial accounts for chain
