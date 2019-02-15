@@ -37,7 +37,6 @@ COPY mix.* ./
 COPY apps/chain/mix.* ./apps/chain/
 COPY apps/json_rpc/mix.* ./apps/json_rpc/
 COPY apps/storage/mix.* ./apps/storage/
-COPY apps/web_api/mix.* ./apps/web_api/
 
 RUN mix do deps.get, deps.compile
 
