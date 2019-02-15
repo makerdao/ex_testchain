@@ -169,7 +169,7 @@ defmodule Chain do
   """
   @spec revert_snapshot(Chain.evm_id(), Chain.Snapshot.Details.t()) :: :ok | {:error, term()}
   def revert_snapshot(id, %Chain.Snapshot.Details{} = snapshot) do
-    case SnapshotManager.exists?(snapshot) do
+    case Chain.SnapshotManager.exists?(snapshot) do
       false ->
         {:error, "Snapshot not exist"}
 
