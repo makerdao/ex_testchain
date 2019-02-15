@@ -38,6 +38,7 @@ defmodule Chain.MixProject do
       {:poolboy, "~> 1.5.1"},
       {:ksha3, "~> 1.0.0", git: "https://github.com/onyxrev/ksha3.git", branch: "master"},
       {:ethereum_wallet, github: "onyxrev/ethereum_wallet_elixir"},
+      {:jason, "~> 1.1"},
       {:json_rpc, in_umbrella: true},
       {:storage, in_umbrella: true},
       {:faker, "~> 0.11", only: :test}
