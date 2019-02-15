@@ -28,7 +28,7 @@ docker run \
 
 ## Installation
 
-You could install it from docker hub using `docker run makerdao/ex_testchain:latest` command.
+You could install it from docker hub using `docker pull makerdao/ex_testchain:latest` command.
 
 Because ExTestchain could start different chains it requires lot of ports to be proxied from docker.
 
