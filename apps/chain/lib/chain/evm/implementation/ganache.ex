@@ -27,7 +27,7 @@ defmodule Chain.EVM.Implementation.Ganache do
 
     file = open_log_file(config)
 
-    {:ok, %{port: port, mining: true, log_file: file}}
+    {:ok, %{port: port, log_file: file}}
   end
 
   @impl Chain.EVM
@@ -40,10 +40,8 @@ defmodule Chain.EVM.Implementation.Ganache do
   @impl Chain.EVM
   def handle_msg(_str, _, %{log_file: nil}), do: :ok
 
-  def handle_msg(str, _, %{log_file: file}) do
-    IO.binwrite(file, str)
-    :ok
-  end
+  @impl Chain.EVM
+  def handle_msg(str, _, %{log_file: file}), do: IO.binwrite(file, str)
 
   @impl Chain.EVM
   def terminate(id, _config, %{port: port, log_file: file}) do
@@ -80,7 +78,9 @@ defmodule Chain.EVM.Implementation.Ganache do
   """
   @spec start_node(Chain.EVM.Config.t(), [Chain.EVM.Account.t()]) :: Porcelain.Process.t()
   def start_node(config, accounts) do
-    Porcelain.spawn_shell(build_command(config, accounts), out: {:send, self()})
+    config
+    |> build_command(accounts)
+    |> Porcelain.spawn_shell(out: {:send, self()})
   end
 
   @doc """

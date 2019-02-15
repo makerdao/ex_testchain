@@ -33,6 +33,30 @@ defmodule Chain.EVM.Notification do
 
   @enforce_keys [:id, :event]
   defstruct id: nil, event: nil, data: %{}
+
+  @doc """
+  Just creating new `Chain.EVM.Notification` structure
+  """
+  @spec new(Chain.evm_id(), atom(), term()) :: :ok
+  def new(id, event, data \\ %{}), do: %__MODULE__{id: id, event: event, data: data}
+
+  @doc """
+  Send notification to given pid.
+
+  You could pass receiver in several formats: 
+   - `pid` - Normal pid that should be notified.
+   - `%{notify_pid: pid}` - Config with `notify_pid` key.
+  """
+  @spec send(%{notify_pid: pid()} | pid | module, Chain.evm_id(), atom(), term()) :: :ok
+  def send(receiver, id, event, data \\ %{})
+
+  def send(nil, _, _, _), do: :ok
+
+  def send(%{notify_pid: pid}, id, event, data),
+    do: send(pid, id, event, data)
+
+  def send(pid, id, event, data),
+    do: send(pid, __MODULE__.new(id, event, data))
 end
 
 defimpl Jason.Encoder, for: Chain.EVM.Notification do

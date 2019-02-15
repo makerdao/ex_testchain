@@ -5,8 +5,7 @@ defmodule Chain.EVM do
 
   require Logger
 
-  alias Chain.EVM.Config
-  alias Chain.EVM.Notification
+  alias Chain.EVM.{Config, Notification}
   alias Storage.AccountStore
 
   # Amount of ms the server is allowed to spend initializing or it will be terminated
@@ -131,35 +130,13 @@ defmodule Chain.EVM do
 
       require Logger
 
+      alias Chain.EVM.State
       alias Chain.SnapshotManager
       alias Chain.Snapshot.Details, as: SnapshotDetails
 
       # maximum amount of checks for evm started
       # system checks if evm started every 200ms
       @max_start_checks 30 * 5
-
-      defmodule State do
-        @moduledoc """
-        Default structure for handling state into any EVM implementation
-
-        Consist of this properties:
-         - `status` - Chain status
-         - `task` - Task scheduled for execution after chain stop
-         - `config` - default configuration for chain. Not available in implemented callback functions
-         - `internal_state` - state for chain implementation
-
-        `internal_state` - will be passed as state for all implemented callback functions
-        """
-
-        @type t :: %__MODULE__{
-                status: Chain.EVM.status(),
-                task: Chain.EVM.scheduled_task(),
-                config: Chain.EVM.Config.t(),
-                internal_state: term()
-              }
-        @enforce_keys [:config]
-        defstruct status: :none, task: nil, config: nil, internal_state: nil
-      end
 
       @doc false
       def start_link(%Config{id: nil}), do: {:error, :id_required}
@@ -172,9 +149,8 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def init(%Config{} = config) do
-        {:ok, %State{status: :starting, config: config}, {:continue, :start_chain}}
-      end
+      def init(%Config{} = config),
+        do: {:ok, %State{status: :starting, config: config}, {:continue, :start_chain}}
 
       @doc false
       def handle_continue(:start_chain, %State{config: config} = state) do
@@ -198,15 +174,15 @@ defmodule Chain.EVM do
               Process.monitor(pid)
             end
 
-            Chain.Watcher.watch(http_port, ws_port, db_path)
+            # Adding ports and db_path to list of "reserved"
+            Chain.Watcher.reserve(http_port, ws_port, db_path)
 
             # Added. finishing
-            {:noreply, %State{state | internal_state: internal_state}}
+            {:noreply, State.internal_state(state, internal_state)}
 
           {:error, err} ->
             Logger.error("#{config.id}: on start: #{inspect(err)}")
-            notify_status(config, :failed)
-            {:stop, {:shutdown, :failed_to_start}, %State{state | status: :failed}}
+            {:stop, {:shutdown, :failed_to_start}, State.status(state, :failed, config)}
         end
       end
 
@@ -215,8 +191,13 @@ defmodule Chain.EVM do
         case stop(config, internal_state) do
           {:ok, new_internal_state} ->
             Logger.debug("#{config.id}: Successfully stopped EVM")
-            notify_status(config, :terminating)
-            {:noreply, %State{state | status: :terminating, internal_state: new_internal_state}}
+
+            new_state =
+              state
+              |> State.status(:terminating, config)
+              |> State.internal_state(new_internal_state)
+
+            {:noreply, new_state}
 
           {:error, err} ->
             Logger.error("#{config.id}: Failed to stop EVM with error: #{inspect(err)}")
@@ -234,12 +215,12 @@ defmodule Chain.EVM do
           when status in ~w(snapshot_taken snapshot_reverted)a do
         Logger.debug("#{config.id} Starting chain after #{status}")
         # Start chain process
-        {:ok, new_state} = start(config)
+        {:ok, new_internal_state} = start(config)
         # Schedule started check
         # Operation is async and `status: :active` will be set later
         # See: `handle_info({:check_started, _})`
         check_started(self())
-        {:noreply, %State{state | internal_state: new_state}}
+        {:noreply, State.internal_state(state, new_internal_state)}
       end
 
       @doc false
@@ -255,6 +236,17 @@ defmodule Chain.EVM do
         {:noreply, state, {:continue, :stop}}
       end
 
+      def handle_info({:check_started, retries}, %State{config: config} = state)
+          when retries >= @max_start_checks do
+        msg = "#{config.id}: Fialed to start EVM. Alive checks failed"
+
+        Logger.error(msg)
+        # Have to notify about error to tell our supervisor to restart evm process
+        Notification.send(config, config.id, :error, %{message: msg})
+
+        {:stop, :failed_to_check_started, State.status(state, :failed, config)}
+      end
+
       @doc false
       def handle_info(
             {:check_started, retries},
@@ -266,25 +258,13 @@ defmodule Chain.EVM do
           true ->
             Logger.debug("#{config.id}: EVM Finally operational !")
 
-            res =
-              config
-              |> handle_started(internal_state)
-              # Marking chain as started and operational
-              |> handle_action(%State{state | status: :active})
-
-            # Send notification about chain active again
-            notify_status(config, :active)
-
-            # Returning result of action
-            res
+            config
+            |> handle_started(internal_state)
+            # Marking chain as started and operational
+            |> handle_action(State.status(state, :active, config))
 
           false ->
             Logger.debug("#{config.id}: (#{retries}) not operational fully yet...")
-
-            if retries >= @max_start_checks do
-              notify_status(config, :failed)
-              raise "#{config.id}: Failed to start evm (alive checks failed)"
-            end
 
             check_started(self(), retries + 1)
             {:noreply, state}
@@ -322,19 +302,18 @@ defmodule Chain.EVM do
 
           Logger.debug("#{id}: Snapshot made, details: #{inspect(details)}")
 
-          if pid = Map.get(config, :notify_pid) do
-            send(pid, %Notification{id: id, event: :snapshot_taken, data: details})
-          end
+          Notification.send(config, id, :snapshot_taken, details)
 
-          notify_status(config, :snapshot_taken)
+          new_state =
+            state
+            |> State.status(:snapshot_taken, config)
+            |> State.task(nil)
 
-          {:noreply, %State{state | status: :snapshot_taken, task: nil},
-           {:continue, :start_after_task}}
+          {:noreply, new_state, {:continue, :start_after_task}}
         rescue
           err ->
             Logger.error("#{id} failed to make snapshot with error #{inspect(err)}")
-            notify_status(config, :failed)
-            {:noreply, %State{state | status: :failed}}
+            {:noreply, State.status(state, :failed, config)}
         end
       end
 
@@ -354,22 +333,21 @@ defmodule Chain.EVM do
           :ok = SnapshotManager.restore_snapshot!(snapshot, db_path)
           Logger.debug("#{id}: Snapshot reverted")
 
-          if pid = Map.get(config, :notify_pid) do
-            send(pid, %Notification{id: id, event: :snapshot_reverted, data: snapshot})
-          end
+          Notification.send(config, id, :snapshot_reverted, snapshot)
 
-          notify_status(config, :snapshot_reverted)
+          new_state =
+            state
+            |> State.status(:snapshot_reverted, config)
+            |> State.task(nil)
 
-          {:noreply, %State{state | status: :snapshot_reverted, task: nil},
-           {:continue, :start_after_task}}
+          {:noreply, new_state, {:continue, :start_after_task}}
         rescue
           err ->
             Logger.error(
               "#{id} failed to revert snapshot #{inspect(snapshot)} with error #{inspect(err)}"
             )
 
-            notify_status(config, :failed)
-            {:noreply, %State{state | status: :failed}}
+            {:noreply, State.status(state, :failed, config)}
         end
       end
 
@@ -395,18 +373,10 @@ defmodule Chain.EVM do
           }"
         )
 
-        if pid = Map.get(config, :notify_pid) do
-          Logger.debug("#{config.id} Sending notification to #{inspect(pid)}")
-
-          send(pid, %Notification{
-            id: config.id,
-            event: :error,
-            data: %{
-              status: signal,
-              message: "#{config.id} chain terminated with status #{status}"
-            }
-          })
-        end
+        Notification.send(config, config.id, :error, %{
+          status: signal,
+          message: "#{config.id} chain terminated with status #{status}"
+        })
 
         case status do
           :active ->
@@ -459,56 +429,70 @@ defmodule Chain.EVM do
       end
 
       @doc false
+      def handle_call(:lock, _from, %State{status: :active, config: config} = state),
+        do: {:reply, :ok, State.locked(state, true, config)}
+
+      @doc false
+      def handle_call(:lock, _from, state),
+        do: {:reply, {:error, :not_active_status}, state}
+
+      @doc false
+      def handle_call(:unlock, _from, %State{locked: true, config: config} = state),
+        do: {:reply, :ok, State.locked(state, false, config)}
+
+      @doc false
+      def handle_call(:unlock, _from, state),
+        do: {:reply, :ok, state}
+
+      @doc false
       def handle_cast({:new_notify_pid, pid}, %State{config: config} = state),
-        do: {:noreply, %State{state | config: Map.put(config, :notify_pid, pid)}}
+        do: {:noreply, State.config(state, Map.put(config, :notify_pid, pid))}
 
       @doc false
       def handle_cast(
             {:take_snapshot, description},
-            %State{status: :active, config: config, internal_state: internal_state} = state
+            %State{status: :active, locked: false, config: config, internal_state: internal_state} =
+              state
           ) do
         Logger.debug("#{config.id} stopping emv before taking snapshot")
-        {:ok, new_state} = stop(config, internal_state)
-        # Send notification about status change
-        notify_status(config, :snapshot_taking)
+        {:ok, new_internal_state} = stop(config, internal_state)
 
-        {:noreply,
-         %State{
-           state
-           | status: :snapshot_taking,
-             task: {:take_snapshot, description},
-             internal_state: new_state
-         }}
+        new_state =
+          state
+          |> State.status(:snapshot_taking, config)
+          |> State.task({:take_snapshot, description})
+          |> State.internal_state(new_internal_state)
+
+        {:noreply, new_state}
       end
 
       @doc false
       def handle_cast({:take_snapshot, _}, state) do
-        Logger.error("No way we could take snapshot for non operational evm")
+        Logger.error("No way we could take snapshot for non operational or locked evm")
         {:noreply, state}
       end
 
       @doc false
       def handle_cast(
             {:revert_snapshot, snapshot},
-            %State{status: :active, config: config, internal_state: internal_state} = state
+            %State{status: :active, locked: false, config: config, internal_state: internal_state} =
+              state
           ) do
         Logger.debug("#{config.id} stopping emv before reverting snapshot")
-        {:ok, new_state} = stop(config, internal_state)
-        # Send notification about status change
-        notify_status(config, :snapshot_reverting)
+        {:ok, new_internal_state} = stop(config, internal_state)
 
-        {:noreply,
-         %State{
-           state
-           | status: :snapshot_reverting,
-             task: {:revert_snapshot, snapshot},
-             internal_state: new_state
-         }}
+        new_state =
+          state
+          |> State.status(:snapshot_reverting, config)
+          |> State.task({:revert_snapshot, snapshot})
+          |> State.internal_state(new_internal_state)
+
+        {:noreply, new_state}
       end
 
       @doc false
       def handle_cast({:revert_snapshot, _}, state) do
-        Logger.error("No way we could revert snapshot for non operational evm")
+        Logger.error("No way we could revert snapshot for non operational or locked evm")
         {:noreply, state}
       end
 
@@ -525,43 +509,26 @@ defmodule Chain.EVM do
 
         # I have to make terminate function with 3 params. otherwise it might override
         # `GenServer.terminate/2`
-        res = terminate(config.id, config, internal_state)
+        terminate(config.id, config, internal_state)
 
-        # Notify that status changed to :terminated
-        notify_status(config, :terminated)
+        # We are setting new state and status 
+        # because system will send all required notifications
+        # and we really don't care about setting updated state somewhere
+        state
+        |> State.status(:terminated, config)
+        |> State.internal_state(internal_state)
 
-        # Check and clean path for all chains
-        if Map.get(config, :clean_on_stop) do
-          db_path = Map.get(config, :db_path)
-
-          case File.rm_rf(db_path) do
-            {:error, err} ->
-              Logger.error(
-                "#{config.id}: Failed to clean up #{db_path} with error: #{inspect(err)}"
-              )
-
-            _ ->
-              Logger.debug("#{config.id}: Cleaned path after termination #{db_path}")
-          end
-        end
+        # Clean path for chain after it was terminated
+        Config.clean_on_stop(config)
 
         # If exit reason is normal we could send notification that evm stopped
-        if pid = Map.get(config, :notify_pid) do
-          case reason do
-            :normal ->
-              send(pid, %Notification{id: config.id, event: :stopped})
+        case reason do
+          :normal ->
+            Notification.send(config, config.id, :stopped)
 
-            other ->
-              send(pid, %Notification{
-                id: config.id,
-                event: :error,
-                data: %{message: "#{inspect(other)}"}
-              })
-          end
+          other ->
+            Notification.send(config, config.id, :error, %{message: "#{inspect(other)}"})
         end
-
-        # Returning termination result
-        res
       end
 
       ######
@@ -587,11 +554,11 @@ defmodule Chain.EVM do
       end
 
       @impl Chain.EVM
-      def handle_started(%{notify_pid: nil}, _internal_state), do: :ok
+      def handle_started(%Config{notify_pid: nil}, _internal_state), do: :ok
 
-      def handle_started(%Config{notify_pid: pid, id: id} = config, _internal_state) do
+      def handle_started(%Config{id: id} = config, _internal_state) do
         details = details(config)
-        send(pid, %Notification{id: id, event: :started, data: details})
+        Notification.send(config, id, :started, details)
         :ignore
       end
 
@@ -638,23 +605,8 @@ defmodule Chain.EVM do
         }
       end
 
-      # notify listener about evm status change
-      defp notify_status(%Config{id: id, notify_pid: pid, clean_on_stop: clean} = config, status) do
-        if pid do
-          send(pid, %Notification{
-            id: id,
-            event: :status_changed,
-            data: status
-          })
-        end
-
-        unless clean do
-          Storage.store(config, status)
-        end
-      end
-
       # Internal handler for evm actions
-      defp handle_action(reply, state) do
+      defp handle_action(reply, %State{config: config} = state) do
         case reply do
           :ok ->
             {:noreply, state}
@@ -663,18 +615,20 @@ defmodule Chain.EVM do
             {:noreply, state}
 
           {:ok, new_internal_state} ->
-            {:noreply, %State{state | internal_state: new_internal_state}}
+            {:noreply, State.internal_state(state, new_internal_state)}
 
           {:reply, reply, new_internal_state} ->
-            {:reply, reply, %State{state | internal_state: new_internal_state}}
+            {:reply, reply, State.internal_state(state, new_internal_state)}
 
           {:error, err} ->
-            Logger.error("#{state.config.id}: action failed with error: #{inspect(err)}")
+            Logger.error(
+              "#{get_in(state, [:config, :id])}: action failed with error: #{inspect(err)}"
+            )
+
+            # Do we really need to stop ? 
+            {:stop, :error, State.status(state, :failed, config)}
         end
       end
-
-      # Store current chain in storage
-      defp save_chain_status(config, status), do: Storage.store(config, status)
 
       # Send msg to check if evm started
       # Checks when EVM is started in async mode.

@@ -20,6 +20,9 @@ defmodule Chain.EVM.Config do
   - `snapshot_id` - Snapshot ID that should be loaded on chain start
 
   """
+
+  require Logger
+
   @type t :: %__MODULE__{
           type: Chain.evm_type(),
           id: Chain.evm_id() | nil,
@@ -51,4 +54,23 @@ defmodule Chain.EVM.Config do
             clean_on_stop: false,
             description: "",
             snapshot_id: nil
+
+  @doc """
+  Will clean `db_path` if `clean_on_stop` is set to true
+  Otherwise it will do nothing and will return `:ok`
+  """
+  @spec clean_on_stop(Chain.EVM.Config.t()) :: :ok | {:error, term()}
+  def clean_on_stop(%__MODULE__{clean_on_stop: false}), do: :ok
+
+  def clean_on_stop(%__MODULE__{id: id, clean_on_stop: true, db_path: db_path}) do
+    case File.rm_rf(db_path) do
+      {:error, err} ->
+        Logger.error("#{id}: Failed to clean up #{db_path} with error: #{inspect(err)}")
+        {:error, err}
+
+      _ ->
+        Logger.debug("#{id}: Cleaned path after termination #{db_path}")
+        :ok
+    end
+  end
 end

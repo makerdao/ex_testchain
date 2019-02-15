@@ -41,7 +41,7 @@ defmodule Chain do
   # Ability to start chain using map
   def start(config) when is_map(config) do
     Config
-    |> struct(config)
+    |> Kernel.struct(config)
     |> start()
   end
 
@@ -52,9 +52,9 @@ defmodule Chain do
   """
   @spec start_existing(Chain.evm_id(), nil | pid()) :: {:ok, Chain.evm_id()} | {:error, term()}
   def start_existing(id, notify_pid \\ nil) do
-    with nil <- get_pid(id),
-         %{db_path: db_path} = details <- Storage.get(id),
-         true <- File.dir?(db_path) do
+    with {:pid, nil} <- {:pid, get_pid(id)},
+         {:details, %{db_path: db_path} = details} <- {:details, Storage.get(id)},
+         {:path, true} <- {:path, File.dir?(db_path)} do
       config =
         details
         |> Map.drop([:status, :http_port, :ws_port])
@@ -63,16 +63,16 @@ defmodule Chain do
       Logger.debug("#{id} starting existing chain from storage with config #{inspect(config)}")
 
       Config
-      |> struct(config)
+      |> Kernel.struct(config)
       |> start()
     else
-      pid when is_pid(pid) ->
+      {:pid, _pid} ->
         {:error, "chain #{id} is already alive !"}
 
-      nil ->
+      {:details, _details} ->
         {:error, "no configuration exist in storage for chain id #{id}"}
 
-      false ->
+      {:path, _exist} ->
         {:error, "no folder with chain data exist for chain id #{id}"}
     end
   end
@@ -136,6 +136,18 @@ defmodule Chain do
         {:error, "#{id} error removing chain details"}
     end
   end
+
+  @doc """
+  Locks chain and decline any operations on chain
+  """
+  @spec lock(Chain.evm_id()) :: :ok | {:error, term()}
+  def lock(id), do: GenServer.cast(get_pid(id), :lock)
+
+  @doc """
+  Unlocks chain and allow any operations on chain
+  """
+  @spec unlock(Chain.evm_id()) :: :ok | {:error, term()}
+  def unlock(id), do: GenServer.cast(get_pid(id), :unlock)
 
   @doc """
   Generates new chain snapshot and places it into given path

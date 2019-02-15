@@ -1,6 +1,6 @@
 defmodule Chain.Watcher do
   @moduledoc """
-  This module will watch chains and reserv resources for them.
+  This module will watch chains and reserve resources for them.
   In case new chain is started and allocated ports/folder it should send message
   to this module. And module will remember it and will allocate ports/folder
   under chain PID. 
@@ -13,7 +13,7 @@ defmodule Chain.Watcher do
 
   Usage: 
 
-      Chain.Watcher.watch(8545, 8546, "/var/chains/somechain"})
+      Chain.Watcher.reserve(8545, 8546, "/var/chains/somechain"})
 
   Watcher stores everything in one ETS table in format: 
   `{pid, http_port, ws_port, db_path}` 
@@ -46,7 +46,7 @@ defmodule Chain.Watcher do
   end
 
   @doc false
-  def handle_call({:watch, http, ws, db}, {from, _}, []) do
+  def handle_call({:reserve, http, ws, db}, {from, _}, []) do
     :ets.insert(@table, {from, http, ws, db})
     Process.monitor(from)
     {:reply, :ok, []}
@@ -64,9 +64,9 @@ defmodule Chain.Watcher do
   chain db path into Watcher. 
   After process dies - watcher will release locks from port/path.
   """
-  @spec watch(pos_integer() | nil, pos_integer() | nil, binary) :: :ok | {:error, term()}
-  def watch(http_port, ws_port, db_path) do
-    GenServer.call(__MODULE__, {:watch, http_port, ws_port, db_path})
+  @spec reserve(pos_integer() | nil, pos_integer() | nil, binary) :: :ok | {:error, term()}
+  def reserve(http_port, ws_port, db_path) do
+    GenServer.call(__MODULE__, {:reserve, http_port, ws_port, db_path})
   end
 
   @doc """
