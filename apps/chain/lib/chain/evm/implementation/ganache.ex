@@ -8,6 +8,12 @@ defmodule Chain.EVM.Implementation.Ganache do
   alias Chain.EVM.Config
 
   @impl Chain.EVM
+  def get_ports() do
+    port = Chain.PortReserver.new_unused_port()
+    {port, port}
+  end
+
+  @impl Chain.EVM
   def start(%Config{id: id, accounts: amount, db_path: db_path} = config) do
     Logger.debug("#{id}: Starting ganache-cli")
 

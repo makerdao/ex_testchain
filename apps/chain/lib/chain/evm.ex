@@ -69,6 +69,14 @@ defmodule Chain.EVM do
   @callback executable!() :: binary
 
   @doc """
+  Callback will be called on chain starting process. 
+  It should return 2 ports one for http RPC and another one for WS RPC.
+  Also method have to reserve this ports using `Chain.PortReserver` module
+  so no other processes should be able to use this ports
+  """
+  @callback get_ports() :: {http_port :: pos_integer(), ws_port :: pos_integer()}
+
+  @doc """
   This callback is called on starting evm instance. Here EVM should be started and validated RPC.
   The argument is configuration for EVM.
   In must return `{:ok, state}`, that `state` will be keept as in `GenServer` and can be
@@ -149,8 +157,11 @@ defmodule Chain.EVM do
       end
 
       @doc false
-      def init(%Config{} = config),
-        do: {:ok, %State{status: :starting, config: config}, {:continue, :start_chain}}
+      def init(%Config{} = config) do
+        {http_port, ws_port} = get_ports()
+        new_config = %Config{config | http_port: http_port, ws_port: ws_port}
+        {:ok, %State{status: :starting, config: new_config}, {:continue, :start_chain}}
+      end
 
       @doc false
       def handle_continue(:start_chain, %State{config: config} = state) do
@@ -165,17 +176,12 @@ defmodule Chain.EVM do
             # See: `handle_info({:check_started, _})`
             check_started(self())
 
-            # Adding chain process to `Chain.Watcher`
-            %Config{http_port: http_port, ws_port: ws_port, db_path: db_path, notify_pid: pid} =
-              config
+            %Config{notify_pid: pid} = config
 
             # Add process monitor for handling pid crash
             if pid do
               Process.monitor(pid)
             end
-
-            # Adding ports and db_path to list of "reserved"
-            Chain.Watcher.reserve(http_port, ws_port, db_path)
 
             # Added. finishing
             {:noreply, State.internal_state(state, internal_state)}
@@ -546,6 +552,14 @@ defmodule Chain.EVM do
       ######
 
       @impl Chain.EVM
+      def get_ports() do
+        http_port = Chain.PortReserver.new_unused_port()
+        ws_port = Chain.PortReserver.new_unused_port()
+
+        {http_port, ws_port}
+      end
+
+      @impl Chain.EVM
       def handle_msg(_str, _config, _state), do: :ignore
 
       @impl Chain.EVM
@@ -658,6 +672,7 @@ defmodule Chain.EVM do
 
       # Allow to override functions
       defoverridable handle_started: 2,
+                     get_ports: 0,
                      started?: 2,
                      handle_msg: 3,
                      version: 0

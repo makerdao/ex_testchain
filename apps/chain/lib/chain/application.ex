@@ -17,7 +17,7 @@ defmodule Chain.Application do
       Chain.BackendProxyNodeConnector,
       Chain.EVM.Supervisor,
       {Registry, keys: :unique, name: Chain.EVM.Registry},
-      Chain.Watcher,
+      Chain.PortReserver,
       Chain.SnapshotManager,
       :poolboy.child_spec(:worker, AccountsCreator.poolboy_config())
     ]

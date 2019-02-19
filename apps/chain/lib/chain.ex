@@ -5,7 +5,6 @@ defmodule Chain do
 
   alias Chain.EVM.Implementation.{Geth, GethVDB, Ganache}
   alias Chain.EVM.Config
-  alias Chain.Watcher
 
   require Logger
 
@@ -280,23 +279,6 @@ defmodule Chain do
     |> Path.join(id)
   end
 
-  # Generate random port in range of `:r
-  # and checks if it's already in use - regenerate it
-  defp unused_port() do
-    port =
-      :chain
-      |> Application.get_env(:evm_port_range, 8500..8600)
-      |> Enum.random()
-
-    case Watcher.port_in_use?(port) do
-      false ->
-        port
-
-      true ->
-        unused_port()
-    end
-  end
-
   # Try to start evm using given module/config
   defp start_evm(module, %Config{id: nil} = config),
     do: start_evm(module, %Config{config | id: unique_id()})
@@ -308,27 +290,13 @@ defmodule Chain do
     start_evm(module, %Config{config | db_path: path})
   end
 
-  # Check http_port and assign random one
-  defp start_evm(module, %Config{http_port: nil} = config),
-    do: start_evm(module, %Config{config | http_port: unused_port()})
-
-  # For Ganache ws_port should be same as http_port
-  # so in case of different we have to reconfigure them
-  defp start_evm(Ganache, %Config{http_port: port, ws_port: ws_port} = config)
-       when port != ws_port,
-       do: start_evm(Ganache, %Config{config | ws_port: port})
-
-  # Check ws_port and assign random one
-  defp start_evm(module, %Config{ws_port: nil} = config),
-    do: start_evm(module, %Config{config | ws_port: unused_port()})
-
   defp start_evm(module, config), do: start_evm_process(module, config)
 
   # Starts new EVM genserver inser default supervisor
   defp start_evm_process(module, %Config{} = config) do
     config = fix_path(config)
 
-    %Config{id: id, http_port: http_port, ws_port: ws_port, db_path: db_path} = config
+    %Config{id: id, db_path: db_path} = config
 
     unless File.exists?(db_path) do
       Logger.debug("#{id}: #{db_path} not exist, creating...")
@@ -340,14 +308,9 @@ defmodule Chain do
       load_restore_snapshot(snapshot_id, db_path)
     end
 
-    with false <- Watcher.port_in_use?(http_port),
-         false <- Watcher.port_in_use?(ws_port),
-         false <- Watcher.path_in_use?(db_path),
-         {:ok, _pid} <- Chain.EVM.Supervisor.start_evm(module, config) do
-      {:ok, id}
-    else
-      true ->
-        {:error, "port or path are in use"}
+    case Chain.EVM.Supervisor.start_evm(module, config) do
+      {:ok, _pid} ->
+        {:ok, id}
 
       _ ->
         {:error, "Something went wrong on starting chain"}
