@@ -309,18 +309,17 @@ defmodule Chain.EVM do
             |> SnapshotManager.make_snapshot!(type)
             |> Map.put(:description, description)
 
-          unless description == "" do
-            SnapshotManager.store(details)
-          end
+          # Storing all snapshots
+          SnapshotManager.store(details)
 
           Logger.debug("#{id}: Snapshot made, details: #{inspect(details)}")
-
-          Notification.send(config, id, :snapshot_taken, details)
 
           new_state =
             state
             |> State.status(:snapshot_taken, config)
             |> State.task(nil)
+
+          Notification.send(config, id, :snapshot_taken, details)
 
           {:noreply, new_state, {:continue, :start_after_task}}
         rescue
