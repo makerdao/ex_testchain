@@ -12,7 +12,7 @@ defmodule Chain.EVM.Supervisor do
 
   @impl true
   def init(_arg) do
-    DynamicSupervisor.init(strategy: :one_for_one)
+    DynamicSupervisor.init(strategy: :one_for_one, max_seconds: 360)
   end
 
   @doc """

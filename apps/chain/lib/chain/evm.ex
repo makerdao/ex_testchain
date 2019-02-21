@@ -257,7 +257,7 @@ defmodule Chain.EVM do
         # Have to notify about error to tell our supervisor to restart evm process
         Notification.send(config, config.id, :error, %{message: msg})
 
-        {:stop, :failed_to_check_started, State.status(state, :failed, config)}
+        {:stop, {:shutdown, :failed_to_check_started}, State.status(state, :failed, config)}
       end
 
       @doc false
