@@ -33,8 +33,7 @@ deps: ## Load all required deps for project
 build-evm: ## Build the Docker image for geth/ganache/other evm
 	@docker build -f ./Dockerfile.evm \
 		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
-		-t $(DOCKER_ID_USER)/$(EVM_NAME):$(EVM_VSN)-$(BUILD) \
-		-t $(DOCKER_ID_USER)/$(EVM_NAME):latest .
+		-t $(DOCKER_ID_USER)/$(EVM_NAME):$(EVM_VSN)-$(BUILD) .
 
 .PHONY: build-evm
 
@@ -44,8 +43,7 @@ build: ## Build elixir application with testchain and WS API
 		--build-arg APP_NAME=$(APP_NAME) \
         --build-arg APP_VSN=$(APP_VSN) \
 		--build-arg EVM_IMAGE=$(DOCKER_ID_USER)/$(EVM_NAME):latest \
-        -t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) \
-        -t $(DOCKER_ID_USER)/$(APP_NAME):latest .
+        -t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) .
 .PHONY: build
 
 run-evm: ## Run evm image after build
