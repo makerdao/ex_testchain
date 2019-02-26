@@ -29,8 +29,9 @@ script:
   - mix test
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "to-457-docker-ci" ]; then # replace branch with master
-    make build-evm;
-    make build;
-    make docker-push;
+  - |
+    if [ "$TRAVIS_BRANCH" == "to-457-docker-ci" ]; then # replace branch with master
+      make build-evm;
+      make build;
+      make docker-push;
     fi
