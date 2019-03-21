@@ -30,7 +30,7 @@ script:
 
 after_success:
   - |
-    if [ "$TRAVIS_BRANCH" == "to-457-docker-ci" ]; then # replace branch with master
+    if [ "$TRAVIS_BRANCH" == "master" ]; then
       echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       make build-evm;
       make build;

@@ -3,7 +3,6 @@ EVM_VSN ?= v6.2.4
 APP_NAME ?= ex_testchain
 APP_VSN ?= 0.1.0
 BUILD ?= `git rev-parse --short HEAD`
-ALPINE_VERSION ?= edge
 DOCKER_ID_USER ?= makerdao
 
 help:
@@ -32,14 +31,12 @@ deps: ## Load all required deps for project
 
 build-evm: ## Build the Docker image for geth/ganache/other evm
 	@docker build -f ./Dockerfile.evm \
-		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
 		-t $(DOCKER_ID_USER)/$(EVM_NAME):$(EVM_VSN)-$(BUILD) .
 
 .PHONY: build-evm
 
 build: ## Build elixir application with testchain and WS API
 	@docker build \
-		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
 		--build-arg APP_NAME=$(APP_NAME) \
         --build-arg APP_VSN=$(APP_VSN) \
         -t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) .
