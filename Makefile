@@ -66,5 +66,5 @@ run: ## Run the app in Docker
 .PHONY: run
 
 dev: ## Run local node with correct values
-	@iex --name chain@127.0.0.1 -S mix
+	@iex --name ex_testchain@127.0.0.1 -S mix
 .PHONY: dev
