@@ -1,6 +1,12 @@
 defmodule Chain.Snapshot.Details do
   @moduledoc """
   Snapshot details
+
+   - `id` - Snapshot ID
+   - `chain` - Chain type (ganache|geth|geth_vdb)
+   - `description` - Snapshot description
+   - `date` - Creation date
+   - `path` - Path to snapshot file
   """
 
   @type t :: %__MODULE__{

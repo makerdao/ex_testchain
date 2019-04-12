@@ -53,12 +53,7 @@ defmodule Chain.SnapshotManager do
     end
 
     id = generate_snapshot_id()
-
-    to =
-      :chain
-      |> Application.get_env(:snapshot_base_path)
-      |> Path.expand()
-      |> Path.join("#{id}.tgz")
+    to = build_path(id)
 
     if File.exists?(to) do
       raise ArgumentError, message: "archive #{to} already exist"
@@ -184,6 +179,36 @@ defmodule Chain.SnapshotManager do
     do: SnapshotStore.store(snapshot)
 
   @doc """
+  Create new snapshot record by given details and existing file
+  """
+  @spec upload(binary, Chain.evm_type(), binary) :: {:ok, Details.t()} | {:error, term()}
+  def upload(id, chain, description) do
+    path = build_path(id)
+
+    details = %SnapshotDetails{
+      id: id,
+      chain: chain,
+      description: description,
+      path: path
+    }
+
+    with {:exist, nil} <- {:exist, SnapshotStore.by_id(id)},
+         true <- File.exists?(path),
+         :ok <- SnapshotStore.store(details) do
+      {:ok, details}
+    else
+      {:exist, _} ->
+        {:error, "Snapshot already exist"}
+
+      false ->
+        {:error, "No snapshot file exist"}
+
+      err ->
+        err
+    end
+  end
+
+  @doc """
   Load snapshot details by id
   In case of error it might raise an exception
   """
@@ -217,8 +242,11 @@ defmodule Chain.SnapshotManager do
     end
   end
 
-  # Try to lookup for a key till new wouldn't be generated
-  defp generate_snapshot_id() do
+  @doc """
+  Try to lookup for a key till new wouldn't be generated
+  """
+  @spec generate_snapshot_id() :: binary
+  def generate_snapshot_id() do
     id = Chain.unique_id()
 
     with nil <- SnapshotStore.by_id(id) do
@@ -227,5 +255,13 @@ defmodule Chain.SnapshotManager do
       _ ->
         generate_snapshot_id()
     end
+  end
+
+  # Build path by snapshot id
+  defp build_path(id) do
+    :chain
+    |> Application.get_env(:snapshot_base_path)
+    |> Path.expand()
+    |> Path.join("#{id}.tgz")
   end
 end

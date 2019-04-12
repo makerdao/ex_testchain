@@ -297,17 +297,17 @@ defmodule Chain.EVM do
       @doc false
       def handle_info(
             {_, :result, %Porcelain.Result{status: signal}},
-            %State{status: :snapshot_taking, task: {:take_snapshot, description}, config: config} =
-              state
+            %State{
+              status: :snapshot_taking,
+              task: {:take_snapshot, description},
+              config: config
+            } = state
           ) do
         %Config{id: id, db_path: db_path, type: type} = config
         Logger.debug("#{id}: Chain terminated for taking snapshot with exit status: #{signal}")
 
         try do
-          details =
-            db_path
-            |> SnapshotManager.make_snapshot!(type)
-            |> Map.put(:description, description)
+          details = SnapshotManager.make_snapshot!(db_path, type, description)
 
           # Storing all snapshots
           SnapshotManager.store(details)

@@ -1,6 +1,6 @@
 defmodule Chain do
   @moduledoc """
-  Default module for controlling different EVM's 
+  Default module for controlling different EVM's
   """
 
   alias Chain.EVM.Implementation.{Geth, GethVDB, Ganache}
@@ -8,8 +8,10 @@ defmodule Chain do
 
   require Logger
 
+  @data_file_name "evm_data.bin"
+
   @typedoc """
-  Chain EVM type. 
+  Chain EVM type.
 
   Available types are:
    - `:ganache` -  Ganache blockchain
@@ -152,11 +154,10 @@ defmodule Chain do
   Generates new chain snapshot and places it into given path
   If path does not exist - system will try to create this path
 
-  **Note** this spanshot will be taken based on chain files. 
+  **Note** this spanshot will be taken based on chain files.
   For chains with internal shnapshot features - you might use `Chain.take_internal_snapshot/1`
 
-  Function will return details about newly generated snapshot in format:
-  `{:ok, Chain.Snapshot.Details.t()}`
+  Function will return `:ok` and will notify system after snapshot will be made
   """
   @spec take_snapshot(Chain.evm_id(), binary) :: :ok | {:error, term()}
   def take_snapshot(id, description \\ ""),
@@ -228,6 +229,56 @@ defmodule Chain do
     else
       _ ->
         unique_id()
+    end
+  end
+
+  @doc """
+  Write any additional information to `evm_data.json` file into chain DB path.
+  Thi sfile will be used any any other processes for storage info in there.
+  """
+  @spec write_external_data(Chain.evm_id(), term) :: :ok | {:error, term}
+  def write_external_data(_id, nil), do: :ok
+
+  def write_external_data(id, data) do
+    path = evm_db_path(id)
+
+    with true <- File.exists?(path),
+         encoded <- :erlang.term_to_binary(data, compressed: 1),
+         file_path <- Path.join(path, @data_file_name),
+         :ok <- File.write(file_path, encoded) do
+      :ok
+    else
+      false ->
+        {:error, "No chain path exists"}
+
+      {:error, err} ->
+        {:error, err}
+
+      err ->
+        err
+    end
+  end
+
+  @doc """
+  Read all additional information that is stored with chain
+  """
+  @spec read_external_data(Chain.evm_id()) :: {:ok, nil | map} | {:error, term}
+  def read_external_data(id) do
+    path =
+      id
+      |> evm_db_path()
+      |> Path.join(@data_file_name)
+
+    with true <- File.exists?(path),
+         {:ok, content} <- File.read(path),
+         data <- :erlang.binary_to_term(content, [:safe]) do
+      {:ok, data}
+    else
+      false ->
+        {:ok, nil}
+
+      {:error, err} ->
+        {:error, err}
     end
   end
 

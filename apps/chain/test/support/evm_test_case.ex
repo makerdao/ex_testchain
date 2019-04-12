@@ -146,6 +146,18 @@ defmodule Chain.Test.EVMTestCase do
         assert Map.get(info, :rpc_url)
         assert Map.get(info, :ws_url)
       end
+
+      test "#{@chain} should store/load external data", %{id: id} do
+        assert Chain.alive?(id)
+
+        data = %{
+          some: Faker.String.base64(),
+          email: Faker.Internet.email()
+        }
+
+        assert :ok = Chain.write_external_data(id, data)
+        assert {:ok, ^data} = Chain.read_external_data(id)
+      end
     end
   end
 end

@@ -26,7 +26,7 @@ defmodule Storage.AccountStore do
 
     with true <- File.exists?(file),
          {:ok, content} <- File.read(file),
-         res <- :erlang.binary_to_term(content) do
+         res <- :erlang.binary_to_term(content, [:safe]) do
       {:ok, res}
     else
       _ ->
@@ -38,6 +38,9 @@ defmodule Storage.AccountStore do
   Checks if file with list of accounts exist
   """
   @spec exists?(binary) :: boolean()
-  def exists?(db_path),
-    do: db_path |> Path.join(@file_name) |> File.exists?()
+  def exists?(db_path) do
+    db_path
+    |> Path.join(@file_name)
+    |> File.exists?()
+  end
 end
