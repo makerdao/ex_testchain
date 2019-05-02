@@ -38,7 +38,7 @@ defmodule Chain.EVM.Implementation.Geth do
     end
 
     # Checking for existing genesis block and init if not found
-    # We switched to --dev with instamining feature so right now 
+    # We switched to --dev with instamining feature so right now
     # we don't need to init chain from genesis.json
 
     # unless File.dir?(db_path <> "/geth") do
@@ -126,10 +126,10 @@ defmodule Chain.EVM.Implementation.Geth do
   Execute special console command on started node.
   Be default command will be executed using HTTP JSONRPC console.
 
-  Comamnd will be used: 
+  Comamnd will be used:
   `geth --exec "${command}" attach http://localhost:${http_port}`
 
-  Example: 
+  Example:
   ```elixir
   iex()> Chain.EVM.Implementation.Geth.exec_command(8545, "eth_blockNumber")
   {:ok, 80}
@@ -185,7 +185,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--ipcdisable",
       "--rpc",
       "--rpcport #{http_port}",
-      "--rpcapi admin,personal,eth,miner,debug,txpool,net",
+      "--rpcapi admin,personal,eth,miner,debug,txpool,net,web3,db,ssh",
       "--rpcaddr=\"0.0.0.0\"",
       "--rpccorsdomain=\"*\"",
       "--rpcvhosts=\"*\"",
@@ -233,12 +233,12 @@ defmodule Chain.EVM.Implementation.Geth do
   defp get_output(_), do: "2>> /dev/null"
 
   #####
-  # End of list 
+  # End of list
   #####
 
   # Send command to port
   # This action will send command directly to started node console.
-  # Without attaching. 
+  # Without attaching.
   # If you will send breacking command - node might exit
 
   defp send_command(port, command) do
