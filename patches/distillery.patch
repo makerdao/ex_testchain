@@ -1,0 +1,16 @@
+diff --git a/lib/distillery/tasks/release.ex b/lib/distillery/tasks/release.ex
+index 5f643b3..cbe58ff 100644
+--- a/lib/distillery/tasks/release.ex
++++ b/lib/distillery/tasks/release.ex
+@@ -84,9 +84,9 @@ defmodule Mix.Tasks.Release do
+     Shell.configure(verbosity)
+ 
+     # make sure we've compiled latest
+-    Mix.Task.run("compile", [])
++    Mix.Task.run("compile", ["--no-deps-check"])
+     # make sure loadpaths are updated
+-    Mix.Task.run("loadpaths", [])
++    Mix.Task.run("loadpaths", ["--no-deps-check"])
+ 
+     # load release configuration
+     Shell.debug("Loading configuration..")
