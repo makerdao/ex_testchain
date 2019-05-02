@@ -19,7 +19,7 @@ defmodule Chain.EVM.Process do
             rpc_url: "",
             ws_url: "",
             gas_limit: 6_000_000,
-            network_id: 999
+            network_id: 1337
 end
 
 defimpl Jason.Encoder, for: Chain.EVM.Process do

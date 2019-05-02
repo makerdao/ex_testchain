@@ -7,7 +7,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   Module is responsible for generating new `genesis.json`
 
   Here are set of settings for new genesis:
-   - `chain_id` - chain Id (Default: `999`)
+   - `chain_id` - chain Id (Default: `1337`)
    - `difficulty` - calc difficulty (Default: `1`)
    - `gas_limit` - gas limit for chain (Default: `6_000_000`)
    - `accounts` - List of accounts
@@ -15,7 +15,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   ## Accounts
   First of all before creating genesis accounts should be created using `Chain.EVM.Geth.create_account/1`.
   You could provide list of accounts in 2 different ways.
-   
+
   **Address as string**
   Just binary string with account Ex: `"172536bfde649d20eaf4ac7a3eab742b9a6cc373"`
   It will set account balance to `500000`
@@ -34,7 +34,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
           accounts: [Chain.EVM.Account.t()]
         }
 
-  defstruct chain_id: 999, difficulty: 1, gas_limit: 6_000_000, accounts: []
+  defstruct chain_id: 1337, difficulty: 1, gas_limit: 6_000_000, accounts: []
 
   @doc """
   Write new `genesis.json` file into provided path.
@@ -42,7 +42,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
 
   If no directory under `path` exist. system will try to create this dir.
 
-  Example: 
+  Example:
   ```elixir
   iex> alias Chain.EVM.Implementation.Geth.Genesis
   Chain.EVM.Implementation.Geth.Genesis
@@ -72,7 +72,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
   defp to_json(%__MODULE__{accounts: accounts} = genesis) do
     %{
       config: %{
-        chainId: Map.get(genesis, :chain_id, 999),
+        chainId: Map.get(genesis, :chain_id, 1337),
         homesteadBlock: 0,
         eip155Block: 0,
         eip158Block: 0

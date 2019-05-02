@@ -17,6 +17,11 @@ defmodule Chain.EVM.Implementation.GethVDB do
   require Logger
 
   @impl Chain.EVM
+  def migrate_config(%Config{} = config) do
+    %Config{config | gas_limit: 6_283_185, network_id: 1337}
+  end
+
+  @impl Chain.EVM
   def start(%Config{id: id, db_path: db_path} = config) do
     # We have to create accounts only if we don't have any already
     accounts =
@@ -27,6 +32,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
           config
           |> Map.get(:accounts)
           |> AccountsCreator.create_accounts(db_path)
+          |> filter_accounts_balance()
           |> store_accounts(db_path)
 
         true ->
@@ -43,7 +49,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
     end
 
     # Checking for existing genesis block and init if not found
-    # We switched to --dev with instamining feature so right now 
+    # We switched to --dev with instamining feature so right now
     # we don't need to init chain from genesis.json
 
     # unless File.dir?(db_path <> "/geth") do
@@ -131,10 +137,10 @@ defmodule Chain.EVM.Implementation.GethVDB do
   Execute special console command on started node.
   Be default command will be executed using HTTP JSONRPC console.
 
-  Comamnd will be used: 
+  Comamnd will be used:
   `geth --exec "${command}" attach http://localhost:${http_port}`
 
-  Example: 
+  Example:
   ```elixir
   iex()> Chain.EVM.Implementation.Geth.exec_command(8545, "eth_blockNumber")
   {:ok, 80}
@@ -151,6 +157,22 @@ defmodule Chain.EVM.Implementation.GethVDB do
   #
   # Private functions
   #
+
+  # Bacause of geth dev mode all accounts
+  # will be with 0 balance except of first one
+  # And in `dev` mode geth will ignore `genesis.json` file
+  # So it will use internal hardcoded values
+  defp filter_accounts_balance([]), do: []
+
+  defp filter_accounts_balance([base]), do: [base]
+
+  defp filter_accounts_balance([first | rest]) do
+    accs =
+      rest
+      |> Enum.map(fn acc -> %Account{acc | balance: 0} end)
+
+    [first | accs]
+  end
 
   # Writing `genesis.json` file into defined `db_path`
   defp write_genesis(
@@ -240,12 +262,12 @@ defmodule Chain.EVM.Implementation.GethVDB do
   defp get_output(_), do: "2>> /dev/null"
 
   #####
-  # End of list 
+  # End of list
   #####
 
   # Send command to port
   # This action will send command directly to started node console.
-  # Without attaching. 
+  # Without attaching.
   # If you will send breacking command - node might exit
 
   defp send_command(port, command) do

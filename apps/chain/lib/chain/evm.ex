@@ -69,12 +69,19 @@ defmodule Chain.EVM do
   @callback executable!() :: binary
 
   @doc """
-  Callback will be called on chain starting process. 
+  Callback will be called on chain starting process.
   It should return 2 ports one for http RPC and another one for WS RPC.
   Also method have to reserve this ports using `Chain.PortReserver` module
   so no other processes should be able to use this ports
   """
   @callback get_ports() :: {http_port :: pos_integer(), ws_port :: pos_integer()}
+
+  @doc """
+  Callback will be called on chain starting process after `EVM.get_ports/0`
+  and this is correct place to make internal changes for concrete chain.
+  For example you might replace `gas_limit` value for geth chain.
+  """
+  @callback migrate_config(Chain.EVM.Config.t()) :: Chain.EVM.Config.t()
 
   @doc """
   This callback is called on starting evm instance. Here EVM should be started and validated RPC.
@@ -159,7 +166,11 @@ defmodule Chain.EVM do
       @doc false
       def init(%Config{} = config) do
         {http_port, ws_port} = get_ports()
-        new_config = %Config{config | http_port: http_port, ws_port: ws_port}
+
+        new_config =
+          %Config{config | http_port: http_port, ws_port: ws_port}
+          |> migrate_config()
+
         {:ok, %State{status: :starting, config: new_config}, {:continue, :start_chain}}
       end
 
@@ -524,7 +535,7 @@ defmodule Chain.EVM do
         # `GenServer.terminate/2`
         terminate(config.id, config, internal_state)
 
-        # We are setting new state and status 
+        # We are setting new state and status
         # because system will send all required notifications
         # and we really don't care about setting updated state somewhere
         state
@@ -557,6 +568,9 @@ defmodule Chain.EVM do
 
         {http_port, ws_port}
       end
+
+      @impl Chain.EVM
+      def migrate_config(config), do: config
 
       @impl Chain.EVM
       def handle_msg(_str, _config, _state), do: :ignore
@@ -646,7 +660,7 @@ defmodule Chain.EVM do
               "#{get_in(state, [:config, :id])}: action failed with error: #{inspect(err)}"
             )
 
-            # Do we really need to stop ? 
+            # Do we really need to stop ?
             {:stop, :error, State.status(state, :failed, config)}
         end
       end
@@ -672,6 +686,7 @@ defmodule Chain.EVM do
       # Allow to override functions
       defoverridable handle_started: 2,
                      get_ports: 0,
+                     migrate_config: 1,
                      started?: 2,
                      handle_msg: 3,
                      version: 0

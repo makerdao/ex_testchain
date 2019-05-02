@@ -6,9 +6,9 @@ defmodule Chain.EVM.Config do
   - `type` - EVM type. (Default: `:ganache`)
   - `id` - Random unique internal process identificator. Example: `"11296068888839073704"`. If empty system will generate it automatically
   - `http_port` - HTTP JSONRPC port. In case of `nil` - port will be randomly assigned (Default: `nil`)
-  - `ws_port` - WS JSONRPC port, in case of `nil` - port will be randomly assigned 
+  - `ws_port` - WS JSONRPC port, in case of `nil` - port will be randomly assigned
   (for ganache it will be ignored and `http_port` will be used) (Default: `nil`)
-  - `network_id` - Network ID (Default: `999`)
+  - `network_id` - Network ID (Default: `1337`)
   - `db_path` - Specify a path to a directory to save the chain database
   - `block_mine_time` - Block period to use in developer mode (0 = mine only if transaction pending) (default: 0)
   - `gas_limit` - The block gas limit (defaults to `9000000000000`)
@@ -44,7 +44,7 @@ defmodule Chain.EVM.Config do
             id: nil,
             http_port: nil,
             ws_port: nil,
-            network_id: 999,
+            network_id: 1337,
             db_path: "",
             block_mine_time: 0,
             gas_limit: 9_000_000_000_000,
