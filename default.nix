@@ -17,23 +17,32 @@
 let
   inherit (builtins) mapAttrs toFile readFile;
   inherit (mix2nix) mkMixNix mkPureMixPackage;
-  updateLockAttrs = lock: attrs: lock // (mapAttrs (k: v: lock."${k}" // attrs."${k}") attrs);
-in {
+
+  runtimDeps = with pkgs; lib.makeBinPath [
+    coreutils gnugrep gnused gawk gnutar
+    bash openssl locale
+    altcoins.go-ethereum # altcoins.ganache-cli
+  ];
+  makeWrapperArgs = pkgs.lib.concatStringsSep " " [
+    "--set PATH ${runtimDeps}"
+    "--set RELEASE_READ_ONLY 1"
+    "--set LOCALE_ARCHIVE_2_27 ${pkgs.glibcLocales}/lib/locale/locale-archive"
+    "--set LANG en_US.UTF-8"
+  ];
+
+  name = "ex_testchain";
+  version = "0.1.0";
+
   ex_testchain = let
-    name = "ex_testchain";
-    version = "0.1.0";
     lock = import (mkMixNix name ./mix.lock);
+    updateLockAttrs = lock: attrs: lock // (mapAttrs (k: v: lock."${k}" // attrs."${k}") attrs);
     importedMixNix = updateLockAttrs lock {
       ksha3 = { builder = "rebar3"; };
       libsecp256k1 = { builder = "rebar3"; };
     };
-    runtimDeps = with pkgs; lib.makeBinPath [
-      coreutils gnugrep gnused gawk gnutar
-      bash openssl
-    ];
     beamPackages = pkgs.beam.packages.erlangR21;
   in mkPureMixPackage {
-    inherit name version importedMixNix runtimDeps;
+    inherit name version importedMixNix;
     inherit (beamPackages) erlang elixir;
 
     src = gis.gitIgnoreSourceFile {
@@ -52,9 +61,6 @@ in {
     postInstall = ''
       mkdir -p $out
       cp -r -t $out _build/$MIX_ENV/rel/${name}/*
-      wrapProgram $out/bin/${name} \
-        --prefix PATH : $runtimDeps \
-        --set RELEASE_READ_ONLY 1
     '';
 
     mixConfig = {
@@ -78,4 +84,9 @@ in {
       };
     };
   };
+in {
+  ex_testchain-cli = with pkgs; runCommand "ex_testchain-cli" { buildInputs = [ makeWrapper ]; } ''
+    mkdir -p $out/bin
+    makeWrapper ${ex_testchain}/bin/${name} $out/bin/${name} ${makeWrapperArgs}
+  '';
 }

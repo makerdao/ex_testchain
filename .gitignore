@@ -28,4 +28,4 @@ snapshots
 chains
 
 # Nix build symlink
-result
+result*

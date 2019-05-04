@@ -1,5 +1,5 @@
 { pkgs, ... }: let
-  inherit (import ./. { inherit pkgs; }) ex_testchain;
+  inherit (import ./. { inherit pkgs; }) ex_testchain-cli;
   paths = with pkgs; lib.makeBinPath [ coreutils which findutils gnused locale ];
 in {
   config.docker-compose.services = {
@@ -9,7 +9,7 @@ in {
       #export PATH=${paths}:$PATH
       service.command = [ "sh" "-c" ''
         trap exit INT
-        ${ex_testchain}/bin/ex_testchain foreground
+        ${ex_testchain-cli}/bin/ex_testchain foreground
       '' ];
 
       service.ports = [
@@ -17,7 +17,7 @@ in {
       ];
 
       service.environment = {
-        LANG = "C.utf8";
+        LANG = "en_US.UTF-8";
         #GETH_PASSWORD_FILE = ./priv/presets/geth/account_password;
         #GANACHE_WRAPPER_FILE = ./priv/presets/ganache/wrapper.sh;
       };
