@@ -2,7 +2,7 @@
   pkgs ? import ./arion-pkgs.nix,
 
   gis ? import (fetchTarball {
-    url = https://github.com/icetan/nix-git-ignore-source/archive/v1.0.0.tar.gz;
+    url = https://github.com/icetan/nix-git-ignore-source/tarball/v1.0.0;
     sha256 = "1mnpab6x0bnshpp0acddylpa3dslhzd2m1kk3n0k23jqf9ddz57k";
   }) { inherit pkgs; },
 
