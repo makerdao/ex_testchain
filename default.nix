@@ -21,7 +21,11 @@ let
   runtimDeps = with pkgs; lib.makeBinPath [
     coreutils gnugrep gnused gawk gnutar
     bash openssl locale
-    altcoins.go-ethereum # altcoins.ganache-cli
+
+    altcoins.go-ethereum
+    (import ./node2nix { inherit pkgs; }).ganache-cli
+
+    dapp ethsign seth
   ];
   makeWrapperArgs = pkgs.lib.concatStringsSep " " [
     "--set PATH ${runtimDeps}"
@@ -50,6 +54,7 @@ let
       ignorefile = (readFile ./.gitignore) + ''
         .git
         *.nix
+        node2nix
       '';
     };
     buildInputs = with pkgs; [ makeWrapper ];
@@ -83,10 +88,15 @@ let
         '';
       };
     };
+
+    checkPhase = ''
+      mix test --no-deps-check
+    '';
   };
 in {
   ex_testchain-cli = with pkgs; runCommand "ex_testchain-cli" { buildInputs = [ makeWrapper ]; } ''
     mkdir -p $out/bin
     makeWrapper ${ex_testchain}/bin/${name} $out/bin/${name} ${makeWrapperArgs}
   '';
+  ex_testchain-test = ex_testchain.overrideAttrs (_: { doCheck = true; });
 }
