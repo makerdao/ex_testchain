@@ -11,24 +11,29 @@
     rev = "31651c506dca78e5b335736490dd24242c054563";
   },
 
-  mix2nix ? pkgs.callPackage (import "${mixnix-src}/nix/mix2nix.nix") {}
+  mix2nix ? pkgs.callPackage (import "${mixnix-src}/nix/mix2nix.nix") {},
+
+  geth ? import ./priv/presets/geth { inherit pkgs; },
+  nodePackages ? import ./node2nix { inherit pkgs; },
+
+  doCheck ? false,
 }:
 
 let
   inherit (builtins) mapAttrs toFile readFile;
   inherit (mix2nix) mkMixNix mkPureMixPackage;
 
-  runtimDeps = with pkgs; lib.makeBinPath [
+  runtimDeps = with pkgs; [
     coreutils gnugrep gnused gawk gnutar
     bash openssl locale
 
-    altcoins.go-ethereum
-    (import ./node2nix { inherit pkgs; }).ganache-cli
+    geth.go-ethereum
+    nodePackages.ganache-cli
 
     dapp ethsign seth
   ];
   makeWrapperArgs = pkgs.lib.concatStringsSep " " [
-    "--set PATH ${runtimDeps}"
+    "--set PATH ${pkgs.lib.makeBinPath runtimDeps}"
     "--set RELEASE_READ_ONLY 1"
     "--set LOCALE_ARCHIVE_2_27 ${pkgs.glibcLocales}/lib/locale/locale-archive"
     "--set LANG en_US.UTF-8"
@@ -46,7 +51,7 @@ let
     };
     beamPackages = pkgs.beam.packages.erlangR21;
   in mkPureMixPackage {
-    inherit name version importedMixNix;
+    inherit name version importedMixNix doCheck;
     inherit (beamPackages) erlang elixir;
 
     src = gis.gitIgnoreSourceFile {
@@ -57,6 +62,8 @@ let
         node2nix
       '';
     };
+
+    nativeBuildInputs = runtimDeps;
     buildInputs = with pkgs; [ makeWrapper ];
 
     postBuild = ''
@@ -98,5 +105,4 @@ in {
     mkdir -p $out/bin
     makeWrapper ${ex_testchain}/bin/${name} $out/bin/${name} ${makeWrapperArgs}
   '';
-  ex_testchain-test = ex_testchain.overrideAttrs (_: { doCheck = true; });
 }
