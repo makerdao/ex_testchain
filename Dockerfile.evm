@@ -15,9 +15,17 @@ RUN npm install
 COPY ${GANACHE_SUBDIR} .
 RUN npx webpack-cli --config ./webpack/webpack.docker.config.js
 
-# Building VDB geth
-RUN git clone https://github.com/vulcanize/go-ethereum.git && \
+# Buidling our replaced geth with unlimited gas
+RUN git clone https://github.com/ethereum/go-ethereum.git && \
     cd go-ethereum && \
+    sed -i -e 's/GasLimit:   6283185,/GasLimit:   0xffffffffffffffff,/g' core/genesis.go && \
+    sed -i -e 's/MaxCodeSize = 24576/MaxCodeSize = 1000000/g' params/protocol_params.go && \
+    sed -i -e 's/return ErrOversizedData//g' core/tx_pool.go && \
+    make geth
+
+# Building VDB geth
+RUN git clone https://github.com/vulcanize/go-ethereum.git go-ethereum-vdb && \
+    cd go-ethereum-vdb && \
     make geth
 
 # Release image
@@ -37,11 +45,14 @@ COPY --from=builder "/app/node_modules/ganache-core/node_modules/websocket/build
 COPY --from=builder "/app/build/ganache-core.docker.cli.js" "./ganache-core.docker.cli.js"
 # COPY --from=builder "/app/build/ganache-core.docker.cli.js.map" "./ganache-core.docker.cli.js.map"
 
-COPY --from=builder "/app/go-ethereum/build/bin/geth" "./geth_vdb"
+COPY --from=builder "/app/go-ethereum/build/bin/geth" "./geth"
+COPY --from=builder "/app/go-ethereum-vdb/build/bin/geth" "./geth_vdb"
 
-RUN apk add --no-cache nodejs geth && \
+RUN apk add --no-cache nodejs && \
     ln -s /app/ganache-core.docker.cli.js /usr/bin/ganache-cli && \
     chmod 755 /usr/bin/ganache-cli && \
+    ln -s /app/geth /usr/bin/geth && \
+    chmod 755 /usr/bin/geth && \
     ln -s /app/geth_vdb /usr/bin/geth_vdb && \
     chmod 755 /usr/bin/geth_vdb
 
