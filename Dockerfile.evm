@@ -16,7 +16,7 @@ COPY ${GANACHE_SUBDIR} .
 RUN npx webpack-cli --config ./webpack/webpack.docker.config.js
 
 # Buidling our replaced geth with unlimited gas
-RUN git clone https://github.com/ethereum/go-ethereum.git && \
+RUN git clone --single-branch --branch v1.8.27 https://github.com/ethereum/go-ethereum.git && \
     cd go-ethereum && \
     sed -i -e 's/GasLimit:   6283185,/GasLimit:   0xffffffffffffffff,/g' core/genesis.go && \
     sed -i -e 's/MaxCodeSize = 24576/MaxCodeSize = 1000000/g' params/protocol_params.go && \

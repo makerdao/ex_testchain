@@ -93,15 +93,8 @@ defmodule Chain.EVM.Implementation.GethVDB do
   end
 
   @impl Chain.EVM
-  def executable!() do
-    case System.find_executable("geth") do
-      nil ->
-        throw("No executable 'geth' found in system...")
-
-      path ->
-        path
-    end
-  end
+  def executable!(),
+    do: Application.get_env(:chain, :geth_vdb_executable)
 
   @doc """
   Bootstrap and initialize a new genesis block.

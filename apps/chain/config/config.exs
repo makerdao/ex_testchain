@@ -45,6 +45,7 @@ config :chain, backend_proxy_node_reconnection_timeout: 5_000
 # For dev env it will be in related to project root. In Docker it will be replaced with
 # file from `rel/config/config.exs`
 config :chain,
+  geth_executable: System.find_executable("geth"),
   geth_vdb_executable: Path.expand("#{__DIR__}/../../../priv/presets/geth/geth_vdb"),
   geth_password_file: Path.expand("#{__DIR__}/../../../priv/presets/geth/account_password"),
   ganache_executable: Path.expand("#{__DIR__}/../../../priv/presets/ganache-cli/cli.js"),
