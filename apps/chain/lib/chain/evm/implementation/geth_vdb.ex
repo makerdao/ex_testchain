@@ -18,7 +18,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
 
   @impl Chain.EVM
   def migrate_config(%Config{} = config) do
-    %Config{config | gas_limit: 6_283_185, network_id: 1337}
+    %Config{config | gas_limit: 9_283_185, network_id: 1337}
   end
 
   @impl Chain.EVM
