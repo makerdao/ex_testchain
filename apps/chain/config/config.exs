@@ -28,6 +28,10 @@ config :chain, front_url: "localhost"
 # `/tmp/chains/some-id-here`
 config :chain, base_path: "/tmp/chains"
 
+# Default chainId that will be assigned to chain if it was not passed
+# as parameter for chain on start
+config :chain, default_chain_id: 999
+
 # Default path where snapshots will be stored for chain
 # chain id will be added as a target folder under this path
 config :chain, snapshot_base_path: "/tmp/snapshots"
