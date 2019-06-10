@@ -178,9 +178,8 @@ defmodule Chain.EVM.Implementation.GethVDB do
       "--gcmode=archive",
       "--datadir #{db_path}",
       "--networkid #{network_id}",
-      # Changing default network port to be able to start on one machine
-      "--port=30302",
       # Disabling network, node is private !
+      "--port=0",
       "--maxpeers=0",
       "--nousb",
       "--ipcdisable",

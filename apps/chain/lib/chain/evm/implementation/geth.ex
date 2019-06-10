@@ -184,6 +184,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--networkid #{network_id}",
       # Disabling network, node is private !
       "--maxpeers=0",
+      "--port=0",
       "--nousb",
       "--ipcdisable",
       "--mine",
