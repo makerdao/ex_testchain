@@ -200,6 +200,7 @@ defmodule Chain.EVM.Implementation.Geth do
       "--gasprice=\"2000000000\"",
       "--targetgaslimit=\"#{gas_limit}\"",
       "--password=#{AccountsCreator.password_file()}",
+      get_etherbase(accounts),
       get_unlock(accounts),
       "console",
       get_output(output)
@@ -222,6 +223,11 @@ defmodule Chain.EVM.Implementation.Geth do
 
     "--unlock=\"#{res}\""
   end
+
+  defp get_etherbase([]), do: ""
+
+  defp get_etherbase([%Account{address: address} | _]),
+    do: "--etherbase=#{address}"
 
   # Get path for logging
   defp get_output(""), do: "2>> /dev/null"

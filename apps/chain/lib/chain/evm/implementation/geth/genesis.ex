@@ -37,7 +37,7 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
         }
 
   defstruct chain_id: Application.get_env(:chain, :default_chain_id),
-            difficulty: 1,
+            difficulty: 0,
             gas_limit: 16_000_000,
             period: 0,
             coinbase: "",
@@ -84,12 +84,16 @@ defmodule Chain.EVM.Implementation.Geth.Genesis do
         eip155Block: 0,
         eip158Block: 0,
         byzantiumBlock: 0,
+        constantinopleBlock: 0,
+        petersburgBlock: 0,
+        daoForkBlock: 0,
+        daoForkSupport: false,
         clique: %{
           period: Map.get(genesis, :period, 0),
           epoch: 30_000
         }
       },
-      difficulty: genesis |> Map.get(:difficulty, 1) |> to_string(),
+      difficulty: genesis |> Map.get(:difficulty, 0) |> to_string(),
       gasLimit: genesis |> Map.get(:gas_limit, 6_000_000) |> to_string(),
       alloc: build_alloc(accounts),
       coinbase: "0x" <> get_coinbase(genesis),
