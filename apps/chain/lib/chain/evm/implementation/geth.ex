@@ -224,6 +224,7 @@ defmodule Chain.EVM.Implementation.Geth do
     "--unlock=\"#{res}\""
   end
 
+  # get etherbase account. it's just 1st address from list
   defp get_etherbase([]), do: ""
 
   defp get_etherbase([%Account{address: address} | _]),

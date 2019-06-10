@@ -198,6 +198,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
       "--gasprice=\"2000000000\"",
       "--targetgaslimit=\"#{gas_limit}\"",
       "--password=#{AccountsCreator.password_file()}",
+      get_etherbase(accounts),
       get_unlock(accounts),
       "console",
       get_output(output)
@@ -220,6 +221,12 @@ defmodule Chain.EVM.Implementation.GethVDB do
 
     "--unlock=\"#{res}\""
   end
+
+  # get etherbase account. it's just 1st address from list
+  defp get_etherbase([]), do: ""
+
+  defp get_etherbase([%Account{address: address} | _]),
+    do: "--etherbase=#{address}"
 
   # Get path for logging
   defp get_output(""), do: "2>> /dev/null"
