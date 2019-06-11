@@ -17,11 +17,6 @@ defmodule Chain.EVM.Implementation.GethVDB do
   require Logger
 
   @impl Chain.EVM
-  def migrate_config(%Config{} = config) do
-    %Config{config | gas_limit: 9_283_185, network_id: 1337}
-  end
-
-  @impl Chain.EVM
   def start(%Config{id: id, db_path: db_path} = config) do
     # We have to create accounts only if we don't have any already
     accounts =
@@ -32,7 +27,6 @@ defmodule Chain.EVM.Implementation.GethVDB do
           config
           |> Map.get(:accounts)
           |> AccountsCreator.create_accounts(db_path)
-          |> filter_accounts_balance()
           |> store_accounts(db_path)
 
         true ->
@@ -52,15 +46,15 @@ defmodule Chain.EVM.Implementation.GethVDB do
     # We switched to --dev with instamining feature so right now
     # we don't need to init chain from genesis.json
 
-    # unless File.dir?(db_path <> "/geth") do
-    # :ok = init_chain(db_path)
-    # end
+    unless File.dir?(db_path <> "/geth") do
+      :ok = init_chain(db_path)
+    end
 
     Logger.debug("#{id}: starting port with geth node")
 
     case start_node(config, accounts) do
       %{err: nil} = port ->
-        {:ok, %{port: port, mining: false}}
+        {:ok, %{port: port, mining: true}}
 
       other ->
         {:error, other}
@@ -151,33 +145,18 @@ defmodule Chain.EVM.Implementation.GethVDB do
   # Private functions
   #
 
-  # Bacause of geth dev mode all accounts
-  # will be with 0 balance except of first one
-  # And in `dev` mode geth will ignore `genesis.json` file
-  # So it will use internal hardcoded values
-  defp filter_accounts_balance([]), do: []
-
-  defp filter_accounts_balance([base]), do: [base]
-
-  defp filter_accounts_balance([first | rest]) do
-    accs =
-      rest
-      |> Enum.map(fn acc -> %Account{acc | balance: 0} end)
-
-    [first | accs]
-  end
-
   # Writing `genesis.json` file into defined `db_path`
   defp write_genesis(
-         %Config{db_path: db_path, network_id: chain_id, id: id, gas_limit: gas_limit},
+         %Config{db_path: db_path, id: id} = config,
          accounts
        ) do
     Logger.debug("#{id}: Writring genesis file to `#{db_path}/genesis.json`")
 
     %Genesis{
-      chain_id: chain_id,
+      chain_id: Map.get(config, :network_id, 999),
       accounts: accounts,
-      gas_limit: gas_limit
+      gas_limit: Map.get(config, :gas_limit),
+      period: Map.get(config, :block_mine_time, 0)
     }
     |> Genesis.write(db_path)
   end
@@ -190,24 +169,25 @@ defmodule Chain.EVM.Implementation.GethVDB do
            http_port: http_port,
            ws_port: ws_port,
            output: output,
-           block_mine_time: block_mine_time,
            gas_limit: gas_limit
          },
          accounts
        ) do
     [
       executable!(),
-      "--dev",
-      # NOTE: this flag is required by vulcanize
       "--gcmode=archive",
       "--datadir #{db_path}",
-      get_block_mine_time(block_mine_time),
       "--networkid #{network_id}",
+      # Disabling network, node is private !
+      "--port=0",
+      "--maxpeers=0",
       "--nousb",
       "--ipcdisable",
+      "--mine",
+      "--minerthreads=1",
       "--rpc",
       "--rpcport #{http_port}",
-      "--rpcapi admin,personal,eth,miner,debug,txpool,net",
+      "--rpcapi admin,personal,eth,miner,debug,txpool,net,web3,db,ssh",
       "--rpcaddr=\"0.0.0.0\"",
       "--rpccorsdomain=\"*\"",
       "--rpcvhosts=\"*\"",
@@ -217,6 +197,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
       "--gasprice=\"2000000000\"",
       "--targetgaslimit=\"#{gas_limit}\"",
       "--password=#{AccountsCreator.password_file()}",
+      get_etherbase(accounts),
       get_unlock(accounts),
       "console",
       get_output(output)
@@ -227,14 +208,6 @@ defmodule Chain.EVM.Implementation.GethVDB do
   #####
   # List of functions generating CLI options
   #####
-
-  # get params for block mining period
-  defp get_block_mine_time(0), do: ""
-
-  defp get_block_mine_time(time) when is_integer(time) and time > 0,
-    do: "--dev.period=\"#{time}\""
-
-  defp get_block_mine_time(_), do: ""
 
   # combine list of accounts to unlock `--unlock 0x....,0x.....`
   defp get_unlock([]), do: ""
@@ -247,6 +220,12 @@ defmodule Chain.EVM.Implementation.GethVDB do
 
     "--unlock=\"#{res}\""
   end
+
+  # get etherbase account. it's just 1st address from list
+  defp get_etherbase([]), do: ""
+
+  defp get_etherbase([%Account{address: address} | _]),
+    do: "--etherbase=#{address}"
 
   # Get path for logging
   defp get_output(""), do: "2>> /dev/null"
