@@ -1,24 +1,52 @@
 language: elixir
 dist: xenial
+services: docker
+elixir:
+- '1.7'
+otp_release: '21.1'
+branches:
+  only:
+  - "/.*/"
 before_install:
-  - sudo add-apt-repository -y ppa:ethereum/ethereum
-  - sudo apt-get update -q
-  - sudo apt-get install -y ethereum
+- sudo add-apt-repository -y ppa:ethereum/ethereum
+- sudo apt-get update -q
+- sudo apt-get install -y ethereum
 before_script:
-  - npm install -g ganache-cli
-
+- npm install -g ganache-cli
 env:
   global:
-    - GANACHE_EXECUTABLE=ganache-cli
-
-elixir:
-  - '1.7'
-otp_release: '21.1'
-
+  - GANACHE_EXECUTABLE=ganache-cli
+  - secure: SipBkSpr202qpJoliL4bjHqVY9hlpeDBxQQIrGczblDw2CHT+wVoN/hWhsnsz54RoK10M1Hyo+XICYMnDZaznYVLurDDJh1QJGD25wMZihGoayiljQAEa8A3Bjur/pyMHo9VsrcrWfBEZ08ql8a7gsxHxQgQ7EmxxKw6eifP3H077d2O8q5eX2NRiDvmUCxHZDI110g9Aa7HUd2N8MLi/AQ+N8jqiEMIKhYAzRlh77ZJviZYOCDFbMAtKg02BdVI6n9r7bQClcafUpvg+kMJK1HxHbtK8hpAZV5AeFTMAKNdFKXbJ4sKOA+MndJYNWXMCHCr5a4kAWnBYr8IpUGemyIoELYsz5GwpeumW38YeRlqErHpqtTfbb3TbrbPDJC18HVzoAOtjN62RWUR1r9HmuS/ZCDxo5MXoKSubF5yPKqSlI0bfc9H1Slllzsd7wK1K0hHgfHb2cCjss/OqVzHME9gBH0avhGVj9yYgDfjS2kMKBilfLciKLdrYwJtFW35hEhqftodt9keHK4TO3r7TpjPrF5JnXcmU2/GSyFxjnCkc/p7DFkINsD6HC7Vt9SQwkLhSWrBt0SrgI/SmRU7QWZNUj+AmRaFdnjfsmmmA9kECmpLc6vLjUUc8AJY82hhJ4Q5gokeVuMrMzWJrbfwgc8SeNJOl3Sokc9DMaSoVpA=
+  - secure: EB9PLm/O65OrbOfNgyWz0SAJw+Gj+xnRY69ablB1VIcbdMmHt7Y3NnMWlD2mvREqan1/x4WH59XvzJIe0LnembVx6KRXAi4ygO6JWCIyNXVrUZ7jA2YKbQI8mDNl8S0mAQ9Col39DRzVjlZyFPoiClVSda9/wxySkIvIJ13zZAXGVo5xNZlQLeD5eH/zL2GvGuhecTgEwFnS9+TneRIKNzxr+vdRLJ0HxUzkjZEBZv2KKG0vN4ZKcA5Ng3NS0VI2AAnM31nYmgPEkQvuQoKqQGdda2ftVwbLCToU99R6+br0Jf5ua/XkVi9tsVFjppda37mvOoyqDEzhGNZ0Uj/nfcTyDbrZHA1n+hKxiSK/uArH2mRpp4/k3CcB0xIeC9w+SN9vpmvluwBAMeVMwlV/8gZAVXaYBSV6JxqCLkm/SSYeBwpvQbR5tvs40lZxzmnzwAA4L/u/WpmVIyN4VoU+y9vh92DhPwPS2Hyo+TdC7LS4sAdfqvPp0gW5L8iRvwh8/k/UgO3u6gHdM3izZHQx58rFeBwUA9LuU4ZZQzr+wtpBoJ54nk9ev5XdPZ+Hj1neAHGy1gAiwaaCkU8v8QH15mcAgiKhv5FQyX8i4N3h9Iv4VnpkKE51/C6fmjrskkx0zuSOFSlK1HROLcaxuUA1Wv5ryIBWKWTeM9/OweHqwv0=
 cache:
   directories:
-    - _build
-    - deps
-
+  - _build
+  - deps
 script:
-  - mix test
+- mix test
+
+deploy:
+- provider: script
+  script: >-
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin &&
+    make build-evm TAG=dev &&
+    make build TAG=dev &&
+    make docker-push TAG=dev
+  on:
+    branch: develop
+  skip_cleanup: true
+- provider: script
+  script: >-
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin &&
+    make build-evm TAG=dev &&
+    make build TAG=latest &&
+    make docker-push TAG=latest
+  on:
+    branch: master
+  skip_cleanup: true
+notifications:
+  webhooks:
+    urls:
+    - secure: "awT7gk4FV7Hu2Nh8D3AH/O/YTWyT/HjPC5diN4KDMGt4YDmFUZCCusZQ0T7qFFLeRPh9gqh7vfwqATF0gC54R/gFr6mBfJRaeBXMFbt1Il4y0+OEQiQk0gIqLbvRdmnuXdvnsML4N+BqKABiMJS6rjzuRIjwn1XIrm01S3b+lGBenghNcBJLFIKQuO2PhdDL05JJ/1z66Gk4DRtmBvLGyAkElI3hks0DJsHS26JlDHxz4N/cS6JaIJVH95zqyTxPWx2Qvuwj3ai+eELojyrnY7td0sOGvnLwBxqkx4bPbLs0pvIw/wpVWWQdmb97O7CJ3A+HXzVUdjwR4qIrI90LyxnrKhDwCBuaeJsJyZAcThjlN2sE1dureZnR2NEXeWTpIt3abpOstVLIvPr/Q7boLUBRiEIsad8SNyehxXe6xngg1K2v4alH8YCyeMhCeMiiIzF1DZP5jLgRugPocFhGNBjeooRBEZdI1prysIdC3q/DjVEKYQmkQgAXvvl7mHDR7SgO+04KiqKlB/v/q2vXflCcLIbD+QTd4Mb28iFYLgVmtLMJHXJcKl2+fyWZ9ZyxUEbl0nmPlOyQTvucXK+51b9zvtvB1cY/6ld8XSO301S9wuOK1OVeFwcY3COz45SBEAbNtZ+XcB59/YYNys4W7EJSp/m2iBM4B/j37Cz9NSI="
+    on_failure: always
+    on_success: never
