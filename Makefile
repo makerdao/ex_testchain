@@ -3,7 +3,7 @@ EVM_VSN ?= v6.2.4
 APP_NAME ?= ex_testchain
 APP_VSN ?= 0.1.0
 BUILD ?= `git rev-parse --short HEAD`
-ALPINE_VERSION ?= edge
+ALPINE_VERSION ?= 3.9
 DOCKER_ID_USER ?= makerdao
 TAG ?= latest
 
@@ -26,6 +26,7 @@ docker-push:
 
 deps: ## Load all required deps for project
 	@mix do deps.get, deps.compile
+	@echo "Setting up ganache"
 	@cd priv/presets/ganache-cli
 	@npm install --no-package-lock
 	@cd -

@@ -1,7 +1,4 @@
-use Mix.Config
-
-# Basically this config will be used on realease building.
-# And application will use this config for Docker build
+import Config
 
 config :chain, base_path: "/opt/chains"
 config :chain, snapshot_base_path: "/opt/snapshots"
@@ -13,7 +10,7 @@ config :chain, geth_vdb_executable: "geth_vdb"
 
 config :chain, backend_proxy_node: :"testchain_backendgateway@testchain-backendgateway.local"
 
-config :chain, front_url: System.get_env("FRONT_URL") || "ex-testchain.local"
+config :chain, front_url: System.fetch_env!("FRONT_URL")
 
 # Place where all dets DBs will be
 config :storage, dets_db_path: "/opt/chains"
