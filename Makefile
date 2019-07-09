@@ -26,6 +26,7 @@ docker-push:
 
 deps: ## Load all required deps for project
 	@mix do deps.get, deps.compile
+	@echo "Setting up ganache"
 	@cd priv/presets/ganache-cli
 	@npm install --no-package-lock
 	@cd -
