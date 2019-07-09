@@ -14,8 +14,8 @@ Other documentation:
 
 ## Requirements
 
- - Elixir 1.7+
- - Erlang 21+
+ - Elixir 1.9+
+ - Erlang 22+
 
 ## Installation
 
@@ -25,7 +25,7 @@ As for now project requires Elixir installed + chain you want to work with.
 
 For NixOS you will also need to install Erlang R21 to make `escript` available
 ```bash
-$ nix-env -iA nixos.erlangR21
+$ nix-env -iA nixos.erlangR22
 ```
 
 Installing project dependencies is easy:
@@ -35,14 +35,6 @@ $ mix do deps.get, deps.compile
 
 Will install, compile all elixir dependencies and node.js for ganache
 
-## Running ex_testchain
-
-For your local instance you could use `make dev` command
-
-## Docker support
-For people who don't want to install everything on local machine there is Docker image provided.
-
-All details are [here](./docs/DOCKER_SERVICE.md)
 
 ### Geth
 ExTestchain uses `geth` installed in your system.
@@ -67,6 +59,10 @@ $ cd priv/presets/ganache-cli
 $ npm install
 ```
 
+## Docker support
+For people who don't want to install everything on local machine there is Docker image provided.
+
+All details are [here](./docs/DOCKER_SERVICE.md)
 ## How it's working
 
 ![How it's working](./how_works.png)
@@ -93,6 +89,12 @@ This command will start project locally but for using a HTTP/WS server on port `
 you have to use `makerdao/testchain-backendgateway`
 
 And it will become accessible from anywhere you need.
+
+## Running ex_testchain
+
+For your local instance you could use `make dev` command.
+Be sure you installed Geth/Ganache
+
 ## Logging
 For now ExTestchain uses logger in debug mode and all messages will be printed to your CLI.
 To omit this uncomment logger level in `apps/chain/config/config.ex`

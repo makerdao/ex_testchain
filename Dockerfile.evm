@@ -1,6 +1,6 @@
 # vim: ft=dockerfile
 
-ARG ALPINE_VERSION=edge
+ARG ALPINE_VERSION=3.9
 
 FROM golang:1.11-alpine as builder
 
