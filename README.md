@@ -44,6 +44,9 @@ ExTestchain uses `geth` installed in your system.
 After this `geth` should be available in your system.
 
 ### Ganache
+**Note that you have to use Node.js less than 12**
+Ganache wouldn't work with node.js 12 !
+
 ExTestchain uses local ganache-cli installation.
 
 And `ganache-cli` added as git module to the project and you have to check it out.
