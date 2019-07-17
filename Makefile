@@ -20,8 +20,8 @@ lint:
 
 docker-push:
 	@echo "Pushing docker images"
-	@docker push $(DOCKER_ID_USER)/$(EVM_NAME)
-	@docker push $(DOCKER_ID_USER)/$(APP_NAME)
+	@docker push $(DOCKER_ID_USER)/$(EVM_NAME):$(TAG)
+	@docker push $(DOCKER_ID_USER)/$(APP_NAME):$(TAG)
 .PHONY: docker-push
 
 deps: ## Load all required deps for project
@@ -45,7 +45,7 @@ build: ## Build elixir application with testchain and WS API
 		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
 		--build-arg APP_NAME=$(APP_NAME) \
 		--build-arg APP_VSN=$(APP_VSN) \
-		--build-arg EVM_IMAGE=$(DOCKER_ID_USER)/$(EVM_NAME):latest \
+		--build-arg EVM_IMAGE=$(DOCKER_ID_USER)/$(EVM_NAME):$(TAG) \
 		-t $(DOCKER_ID_USER)/$(APP_NAME):$(APP_VSN)-$(BUILD) \
 		-t $(DOCKER_ID_USER)/$(APP_NAME):$(TAG) .
 .PHONY: build
@@ -54,7 +54,7 @@ run-evm: ## Run evm image after build
 	@docker run --rm -it \
 			--expose 8545 \
 			-p 8545:8545 \
-			$(DOCKER_ID_USER)/$(EVM_NAME):latest
+			$(DOCKER_ID_USER)/$(EVM_NAME):$(TAG)
 .PHONY: run-evm
 
 run: ## Run the app in Docker
@@ -63,7 +63,7 @@ run: ## Run the app in Docker
 		-v /tmp/snapshots:/opt/snapshots \
 		--expose 8500-8600 -p 8500-8600:8500-8600 \
 		--expose 9100-9105 -p 9100-9105:9100-9105 \
-		--rm -it $(DOCKER_ID_USER)/$(APP_NAME):latest
+		--rm -it $(DOCKER_ID_USER)/$(APP_NAME):$(TAG)
 .PHONY: run
 
 dev: ## Run local node with correct values

@@ -38,7 +38,7 @@ deploy:
 - provider: script
   script: >-
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin &&
-    make build-evm TAG=dev &&
+    make build-evm TAG=latest &&
     make build TAG=latest &&
     make docker-push TAG=latest
   on:
