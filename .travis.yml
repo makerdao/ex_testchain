@@ -13,6 +13,11 @@ before_install:
 - sudo apt-get install -y ethereum
 before_script:
 - npm install -g ganache-cli
+- >-
+  git clone https://github.com/vulcanize/go-ethereum.git go-ethereum-vdb
+  cd go-ethereum-vdb
+  make geth
+  cd -
 env:
   global:
   - GANACHE_EXECUTABLE=ganache-cli
