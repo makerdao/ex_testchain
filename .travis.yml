@@ -6,6 +6,7 @@ elixir:
 otp_release: '22.0'
 go:
  - '1.11'
+go_import_path: github.com/ethereum/go-ethereum
 branches:
   only:
   - "/.*/"
