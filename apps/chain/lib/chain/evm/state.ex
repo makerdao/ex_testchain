@@ -17,12 +17,18 @@ defmodule Chain.EVM.State do
   @type t :: %__MODULE__{
           status: Chain.EVM.status(),
           locked: boolean(),
+          version: Version.t() | nil,
           task: Chain.EVM.scheduled_task(),
           config: Chain.EVM.Config.t(),
           internal_state: term()
         }
   @enforce_keys [:config]
-  defstruct status: :none, locked: false, task: nil, config: nil, internal_state: nil
+  defstruct status: :none,
+            locked: false,
+            version: nil,
+            task: nil,
+            config: nil,
+            internal_state: nil
 
   @doc """
   Set internal state

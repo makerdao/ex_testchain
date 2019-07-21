@@ -90,6 +90,23 @@ defmodule Chain.EVM.Implementation.GethVDB do
   def executable!(),
     do: Application.get_env(:chain, :geth_vdb_executable)
 
+  @impl Chain.EVM
+  def get_version() do
+    version()
+    |> String.split("\n")
+    |> Enum.find(&String.starts_with?(&1, "Version:"))
+    |> String.replace("Version: ", "")
+    |> Version.parse()
+    |> case do
+      {:ok, version} ->
+        version
+
+      _ ->
+        Logger.error("#{__MODULE__} Failed to parse version for #{executable!()}")
+        nil
+    end
+  end
+
   @doc """
   Bootstrap and initialize a new genesis block.
 
@@ -173,12 +190,11 @@ defmodule Chain.EVM.Implementation.GethVDB do
          },
          accounts
        ) do
-    [
+    cmd = [
       executable!(),
       "--gcmode=archive",
       "--datadir #{db_path}",
       "--networkid #{network_id}",
-      "--allow-insecure-unlock",
       # Disabling network, node is private !
       "--port=0",
       "--maxpeers=0",
@@ -203,6 +219,15 @@ defmodule Chain.EVM.Implementation.GethVDB do
       "console",
       get_output(output)
     ]
+
+    # If version is greater than 1.8.17 need to add additional flag
+    case Version.compare(get_version(), "1.8.27") do
+      :gt ->
+        cmd ++ ["--allow-insecure-unlock"]
+
+      _ ->
+        cmd
+    end
     |> Enum.join(" ")
   end
 
