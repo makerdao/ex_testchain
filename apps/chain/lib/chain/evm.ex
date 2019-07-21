@@ -132,6 +132,11 @@ defmodule Chain.EVM do
   @callback initial_accounts(config :: Chain.EVM.Config.t(), state :: any()) :: action_reply()
 
   @doc """
+  Get parsed version for EVM
+  """
+  @callback get_version() :: Version.t() | nil
+
+  @doc """
   Callback will be called to get exact EVM version
   """
   @callback version() :: binary
@@ -171,7 +176,10 @@ defmodule Chain.EVM do
           %Config{config | http_port: http_port, ws_port: ws_port}
           |> migrate_config()
 
-        {:ok, %State{status: :starting, config: new_config}, {:continue, :start_chain}}
+        version = get_version()
+
+        {:ok, %State{status: :starting, config: new_config, version: version},
+         {:continue, :start_chain}}
       end
 
       @doc false
@@ -570,6 +578,9 @@ defmodule Chain.EVM do
       end
 
       @impl Chain.EVM
+      def get_version(), do: nil
+
+      @impl Chain.EVM
       def migrate_config(config), do: config
 
       @impl Chain.EVM
@@ -686,6 +697,7 @@ defmodule Chain.EVM do
       # Allow to override functions
       defoverridable handle_started: 2,
                      get_ports: 0,
+                     get_version: 0,
                      migrate_config: 1,
                      started?: 2,
                      handle_msg: 3,

@@ -2,8 +2,11 @@ language: elixir
 dist: xenial
 services: docker
 elixir:
-- '1.9'
+  - '1.9'
 otp_release: '22.0'
+go:
+ - '1.11'
+go_import_path: github.com/ethereum/go-ethereum
 branches:
   only:
   - "/.*/"
@@ -23,7 +26,7 @@ cache:
   - _build
   - deps
 script:
-- mix test
+- mix test --exclude evm:geth_vdb
 
 deploy:
 - provider: script

@@ -64,6 +64,7 @@ defmodule Chain.Test.EVMTestCase do
         {:ok, %{id: id, config: config, data: data, pid: pid}}
       end
 
+      @tag evm: @chain
       test "#{@chain} unquote() chain created new chain db", %{id: id} do
         # check for storage
         assert Application.get_env(:chain, :base_path)
@@ -71,6 +72,7 @@ defmodule Chain.Test.EVMTestCase do
                |> File.dir?()
       end
 
+      @tag evm: @chain
       test "#{@chain} take_snapshot/1 should create snapshot and revert_snapshot/2 should restore",
            %{
              id: id,
@@ -107,6 +109,7 @@ defmodule Chain.Test.EVMTestCase do
         File.rm(path)
       end
 
+      @tag evm: @chain
       test "#{@chain} take_snaphost/2 should save snapshot in DB in case of description passed",
            %{
              id: id,
@@ -137,6 +140,7 @@ defmodule Chain.Test.EVMTestCase do
         refute File.exists?(path)
       end
 
+      @tag evm: @chain
       test "#{@chain} should load details with accounts", %{id: id} do
         assert Chain.alive?(id)
 
@@ -147,6 +151,7 @@ defmodule Chain.Test.EVMTestCase do
         assert Map.get(info, :ws_url)
       end
 
+      @tag evm: @chain
       test "#{@chain} should store/load external data", %{id: id} do
         assert Chain.alive?(id)
 
