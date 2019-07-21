@@ -28,6 +28,7 @@ before_script:
 - >-
   git clone https://github.com/vulcanize/go-ethereum.git go-ethereum-vdb &&
   cd go-ethereum-vdb &&
+  go run build/ci.go install &&
   make geth &&
   cd -
 env:
