@@ -2,8 +2,10 @@ language: elixir
 dist: xenial
 services: docker
 elixir:
-- '1.9'
+  - '1.9'
 otp_release: '22.0'
+go:
+ - '1.11'
 branches:
   only:
   - "/.*/"
