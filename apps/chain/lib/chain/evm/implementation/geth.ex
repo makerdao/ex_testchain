@@ -182,6 +182,7 @@ defmodule Chain.EVM.Implementation.Geth do
       executable!(),
       "--datadir #{db_path}",
       "--networkid #{network_id}",
+      "--allow-insecure-unlock",
       # Disabling network, node is private !
       "--maxpeers=0",
       "--port=0",

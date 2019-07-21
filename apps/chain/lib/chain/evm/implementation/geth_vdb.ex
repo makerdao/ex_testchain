@@ -178,6 +178,7 @@ defmodule Chain.EVM.Implementation.GethVDB do
       "--gcmode=archive",
       "--datadir #{db_path}",
       "--networkid #{network_id}",
+      "--allow-insecure-unlock",
       # Disabling network, node is private !
       "--port=0",
       "--maxpeers=0",
