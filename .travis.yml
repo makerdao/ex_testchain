@@ -10,27 +10,12 @@ go_import_path: github.com/ethereum/go-ethereum
 branches:
   only:
   - "/.*/"
-addons:
-  apt:
-    packages:
-      - devscripts
-      - debhelper
-      - dput
-      - fakeroot
-      - python-bzrlib
-      - python-paramiko
 before_install:
 - sudo add-apt-repository -y ppa:ethereum/ethereum
 - sudo apt-get update -q
 - sudo apt-get install -y ethereum
 before_script:
 - npm install -g ganache-cli
-- >-
-  git clone https://github.com/vulcanize/go-ethereum.git go-ethereum-vdb &&
-  cd go-ethereum-vdb &&
-  go run build/ci.go install &&
-  make geth &&
-  cd -
 env:
   global:
   - GANACHE_EXECUTABLE=ganache-cli
@@ -41,7 +26,7 @@ cache:
   - _build
   - deps
 script:
-- mix test
+- mix test --exclude evm:geth_vdb
 
 deploy:
 - provider: script
