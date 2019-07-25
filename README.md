@@ -89,7 +89,7 @@ $ iex -S mix phx.server
 ```
 
 This command will start project locally but for using a HTTP/WS server on port `4000`
-you have to use `makerdao/testchain-backendgateway`
+you have to use `makerdao/staxx`
 
 And it will become accessible from anywhere you need.
 

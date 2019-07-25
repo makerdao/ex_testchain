@@ -42,7 +42,7 @@ For `geth` you will need to use 2 ports (For example: `8545` for http json rpc
 and `8546` for ws connections), you don't need to add anything.
 Because ports are into default range `8500-8600`
 
-**Note:** To controll ExTestchain you have to set `testchain-backendgateway`
+**Note:** To controll ExTestchain you have to set `staxx`
 For starting `geth` without any existing snapshot (or set of chain files) you can start docker using command:
 ```bash
 $ docker run -d --name ex_testchain -p 8500-8600:8500-8600  makerdao/ex_testchain:latest

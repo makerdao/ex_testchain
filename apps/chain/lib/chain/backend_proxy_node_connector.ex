@@ -1,7 +1,7 @@
 defmodule Chain.BackendProxyNodeConnector do
   @moduledoc """
   This module is responsible for connecting to QA backend service
-  Because that service will be written with Elixir too we are using 
+  Because that service will be written with Elixir too we are using
   internal `Node.connect/1` function for managing communication.
 
   In case of disconnect we have to run timer for reconnect.
@@ -56,14 +56,17 @@ defmodule Chain.BackendProxyNodeConnector do
 
   # Try connecting to node
   defp connect() do
+    Logger.debug("#{__MODULE__}: Trying to connect to staxx #{backend_node()}")
+
     case Node.connect(backend_node()) do
       true ->
         Logger.debug("#{__MODULE__}: Connected to backend  service node #{backend_node()}")
         Node.monitor(backend_node(), true, [:allow_passive_connect])
         true
 
-      _ ->
-        # Logger.debug("#{__MODULE__}: Failed to connect to #{backend_node()}")
+      err ->
+        Logger.debug("#{__MODULE__}: Failed to connect to #{backend_node()}")
+        IO.inspect(err)
         false
     end
   end
