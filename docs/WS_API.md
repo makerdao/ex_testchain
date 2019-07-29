@@ -1,7 +1,7 @@
 ## WS API
 
 **DEPRECATED**
-**API moved into https://github.com/makerdao/testchain-backendgateway**
+**API moved into https://github.com/makerdao/staxx**
 
 ExTestchain will use special port `4000` for internal communication.
 This port is exposed by default and you don't need to add `--expose 4000` to `docker run` command.

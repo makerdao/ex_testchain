@@ -8,7 +8,7 @@ config :chain, ganache_executable: "ganache-cli"
 config :chain, ganache_wrapper_file: "/opt/built/priv/presets/ganache/wrapper.sh"
 config :chain, geth_vdb_executable: "geth_vdb"
 
-config :chain, backend_proxy_node: :"testchain_backendgateway@testchain-backendgateway.local"
+config :chain, backend_proxy_node: :"staxx@staxx.local"
 
 config :chain, front_url: System.fetch_env!("FRONT_URL")
 
