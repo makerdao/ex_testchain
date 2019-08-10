@@ -56,8 +56,6 @@ defmodule Chain.BackendProxyNodeConnector do
 
   # Try connecting to node
   defp connect() do
-    Logger.debug("#{__MODULE__}: Trying to connect to staxx #{backend_node()}")
-
     case Node.connect(backend_node()) do
       true ->
         Logger.debug("#{__MODULE__}: Connected to backend  service node #{backend_node()}")
@@ -65,8 +63,6 @@ defmodule Chain.BackendProxyNodeConnector do
         true
 
       err ->
-        Logger.debug("#{__MODULE__}: Failed to connect to #{backend_node()}")
-        IO.inspect(err)
         false
     end
   end
