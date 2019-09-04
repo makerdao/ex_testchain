@@ -141,6 +141,32 @@ defmodule Chain.EVM do
   """
   @callback version() :: binary
 
+  @doc """
+  Will clean `db_path` if `clean_on_stop` is set to true
+  Otherwise it will do nothing and will return `:ok`
+  """
+  @spec clean_on_stop(Chain.EVM.Config.t()) :: :ok | {:error, term()}
+  def clean_on_stop(%Config{clean_on_stop: false}), do: :ok
+
+  def clean_on_stop(%Config{id: id, clean_on_stop: true, db_path: db_path}),
+    do: clean(id, db_path)
+
+  @doc """
+  Cleans given path
+  """
+  @spec clean(Chain.evm_id(), binary) :: :ok | {:error, term}
+  def clean(id, db_path) do
+    case File.rm_rf(db_path) do
+      {:error, err} ->
+        Logger.error("#{id}: Failed to clean up #{db_path} with error: #{inspect(err)}")
+        {:error, err}
+
+      _ ->
+        Logger.debug("#{id}: Cleaned path after termination #{db_path}")
+        :ok
+    end
+  end
+
   defmacro __using__(_opt) do
     # credo:disable-for-next-line
     quote do
@@ -554,13 +580,16 @@ defmodule Chain.EVM do
         case reason do
           r when r in ~w(normal shutdown)a ->
             # Clean path for chain after it was terminated
-            Config.clean_on_stop(config)
+            Chain.EVM.clean_on_stop(config)
             # Send notification after stop
             Notification.send(config, config.id, :stopped)
 
           other ->
             Notification.send(config, config.id, :error, %{message: "#{inspect(other)}"})
         end
+
+        # We don't care if it was error or success we have to notify that EVM was terminated
+        Notification.send(config, config.id, :terminated)
       end
 
       ######

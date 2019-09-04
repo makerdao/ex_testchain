@@ -8,7 +8,7 @@ defmodule Chain.EVM.Notification do
   ```elixir
   %Chain.EVM.Notification{
     id: "15054686724791906538",
-    event: :started, 
+    event: :started,
     data: %{
       accounts: ["0x51ef0fe1fe60af27f400ab42ddc9a6b99b277d38"],
       coinbase: "0x51ef0fe1fe60af27f400ab42ddc9a6b99b277d38",
@@ -23,7 +23,7 @@ defmodule Chain.EVM.Notification do
   Event type that should be sent by chain implementation
   """
   @type event ::
-          :started | :stopped | :error | :snapshot_taken | :snapshot_reverted | :status_changed
+          :started | :stopped | :error | :snapshot_taken | :snapshot_reverted | :status_changed | :terminated
 
   @type t :: %__MODULE__{
           id: Chain.evm_id(),
@@ -43,7 +43,7 @@ defmodule Chain.EVM.Notification do
   @doc """
   Send notification to given pid.
 
-  You could pass receiver in several formats: 
+  You could pass receiver in several formats:
    - `pid` - Normal pid that should be notified.
    - `%{notify_pid: pid}` - Config with `notify_pid` key.
   """

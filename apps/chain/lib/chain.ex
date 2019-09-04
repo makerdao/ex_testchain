@@ -129,7 +129,7 @@ defmodule Chain do
   def clean(id) do
     with nil <- get_pid(id),
          %{id: ^id, db_path: path} <- Storage.get(id),
-         {:ok, _} <- File.rm_rf(path),
+         :ok <- Chain.EVM.clean(id, path),
          :ok <- Storage.remove(id) do
       :ok
     else

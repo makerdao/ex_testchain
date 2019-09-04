@@ -239,6 +239,7 @@ channel
 channel.on('started', (data) => console.log('Chain started', data))
 channel.on('error', (err) => console.error('Chain received error', err))
 channel.on('stopped', (data) => console.log('Chain stopped', data))
+channel.on('terminated', (data) => console.log('Chain terminated', data))
 channel.on('snapshot_taken', (data) => console.log('Snapshot taked', snapsht_data))
 channel.on('snapshot_reverted', (data) => console.log('Snapshot reverted', data))
 ```
@@ -251,6 +252,7 @@ List of available events:
  - `started`
  - `stopped`
  - `error`
+ - `terminated`
  - `snapshot_taken`
  - `snapshot_reverted`
 

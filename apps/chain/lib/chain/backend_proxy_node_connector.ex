@@ -62,7 +62,7 @@ defmodule Chain.BackendProxyNodeConnector do
         Node.monitor(backend_node(), true, [:allow_passive_connect])
         true
 
-      err ->
+      _err ->
         false
     end
   end
